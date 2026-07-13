@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/settings_provider.dart';
+import '../../../core/constants/strings.dart';
 
 class BlacklistScreen extends ConsumerStatefulWidget {
   const BlacklistScreen({super.key});
@@ -10,42 +11,17 @@ class BlacklistScreen extends ConsumerStatefulWidget {
 }
 
 class _BlacklistScreenState extends ConsumerState<BlacklistScreen> {
-  bool _isEditing = false;
   final TextEditingController _textController = TextEditingController();
 
-  void _showAddDialog() {
-    _textController.clear();
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('添加黑名单标签'),
-          content: TextField(
-            controller: _textController,
-            decoration: const InputDecoration(
-              hintText: '输入标签（如: futa）',
-            ),
-            autofocus: true,
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('取消'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                if (_textController.text.isNotEmpty) {
-                  ref.read(settingsProvider.notifier).addBlacklistTag(_textController.text);
-                }
-                Navigator.of(context).pop();
-              },
-              child: const Text('添加'),
-            ),
-          ],
-        );
-      },
-    );
-  }
+  /// e621 官网默认屏蔽集（新用户默认黑名单）。
+  static const _preset = [
+    'gore',
+    'scat',
+    'watersports',
+    'young -rating:s',
+    'loli',
+    'shota',
+  ];
 
   @override
   void dispose() {
@@ -53,51 +29,91 @@ class _BlacklistScreenState extends ConsumerState<BlacklistScreen> {
     super.dispose();
   }
 
+  /// 按空格 / 逗号 / 换行拆分，支持批量粘贴（D4）。
+  Iterable<String> _split(String raw) =>
+      raw.split(RegExp(r'[\s,，]+')).where((s) => s.trim().isNotEmpty);
+
+  void _showAddDialog() {
+    _textController.clear();
+    showDialog<void>(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          title: const Text(Strings.blacklistAddTitle),
+          content: TextField(
+            controller: _textController,
+            autofocus: true,
+            minLines: 1,
+            maxLines: 3,
+            decoration: const InputDecoration(hintText: Strings.blacklistAddHint),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text(Strings.cancel),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                final tags = _split(_textController.text).toList();
+                if (tags.isNotEmpty) {
+                  ref.read(settingsProvider.notifier).addBlacklistTags(tags);
+                }
+                Navigator.of(ctx).pop();
+              },
+              child: const Text(Strings.add),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _importPreset() {
+    ref.read(settingsProvider.notifier).addBlacklistTags(_preset);
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(const SnackBar(
+        content: Text(Strings.blacklistPresetImported),
+        duration: Duration(seconds: 1),
+      ));
+  }
+
   @override
   Widget build(BuildContext context) {
-    final settings = ref.watch(settingsProvider);
-    final tags = settings.blacklistedTags;
+    final tags = ref.watch(settingsProvider).blacklistedTags;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('编辑黑名单'),
+        title: const Text(Strings.blacklistTitle),
         actions: [
           IconButton(
-            icon: const Icon(Icons.add),
-            tooltip: '添加标签',
-            onPressed: _showAddDialog,
+            icon: const Icon(Icons.playlist_add),
+            tooltip: Strings.blacklistImportPreset,
+            onPressed: _importPreset,
           ),
-          TextButton(
-            onPressed: () {
-              setState(() {
-                _isEditing = !_isEditing;
-              });
-            },
-            child: Text(
-              _isEditing ? '完成' : '管理',
-              style: const TextStyle(color: Colors.white),
-            ),
+          IconButton(
+            icon: const Icon(Icons.add),
+            tooltip: Strings.add,
+            onPressed: _showAddDialog,
           ),
         ],
       ),
       body: tags.isEmpty
-          ? const Center(child: Text('暂无黑名单标签'))
-          : ListView.builder(
-              itemCount: tags.length,
-              itemBuilder: (context, index) {
-                final tag = tags[index];
-                return ListTile(
-                  title: Text(tag),
-                  trailing: _isEditing
-                      ? IconButton(
-                          icon: const Icon(Icons.remove_circle, color: Colors.red),
-                          onPressed: () {
-                            ref.read(settingsProvider.notifier).removeBlacklistTag(tag);
-                          },
-                        )
-                      : null,
-                );
-              },
+          ? const Center(child: Text(Strings.blacklistEmpty))
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: tags.map((tag) {
+                  return Chip(
+                    label: Text(tag),
+                    onDeleted: () =>
+                        ref.read(settingsProvider.notifier).removeBlacklistTag(tag),
+                    deleteIcon: const Icon(Icons.close, size: 18),
+                  );
+                }).toList(),
+              ),
             ),
     );
   }

@@ -1,15 +1,74 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:dio/dio.dart';
 import 'package:gal/gal.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../models/e621_post.dart';
+import '../../../core/network/api_client.dart';
+import '../../../core/constants/strings.dart';
+import '../../../core/utils/post_format.dart';
 
+/// 下载工具（B5）：走全局 [dioProvider]（带 UA / 日志拦截器），
+/// 带进度反馈、画质选择、完成/失败提示。
 class DownloadHelper {
-  static Future<void> downloadAndSaveImage(BuildContext context, String url, String filename) async {
+  const DownloadHelper._();
+
+  /// 弹出画质选择底部弹层：原图 / 采样图（带各自体积）。
+  static void showDownloadSheet(BuildContext context, WidgetRef ref, E621Post post) {
+    if (post.file.url == null) return;
+
+    final originalUrl = post.file.url!;
+    final sampleUrl = post.preview.url; // 采样/预览图（体积小）
+
+    showModalBottomSheet(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Padding(
+              padding: EdgeInsets.all(16),
+              child: Text(Strings.downloadChooseQuality,
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            ),
+            const Divider(height: 1),
+            ListTile(
+              leading: const Icon(Icons.high_quality),
+              title: const Text(Strings.downloadOriginal),
+              subtitle: Text(
+                '${post.file.ext.toUpperCase()} · ${PostFormat.fileSize(post.file.size)}',
+              ),
+              onTap: () {
+                Navigator.of(ctx).pop();
+                _startDownload(context, ref, originalUrl, '${post.id}.${post.file.ext}');
+              },
+            ),
+            if (sampleUrl != null)
+              ListTile(
+                leading: const Icon(Icons.image),
+                title: const Text(Strings.downloadSample),
+                subtitle: Text('${post.preview.width}x${post.preview.height}'),
+                onTap: () {
+                  Navigator.of(ctx).pop();
+                  _startDownload(context, ref, sampleUrl, '${post.id}_sample.jpg');
+                },
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  static Future<void> _startDownload(
+    BuildContext context,
+    WidgetRef ref,
+    String url,
+    String filename,
+  ) async {
+    final messenger = ScaffoldMessenger.of(context);
+
     if (kIsWeb) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Web test mode: Downloading disabled (Requires Android/iOS).')),
-      );
+      _snack(messenger, Strings.downloadWebDisabled);
       return;
     }
 
@@ -17,62 +76,59 @@ class DownloadHelper {
       if (!await Gal.hasAccess()) {
         final granted = await Gal.requestAccess();
         if (!granted) {
-          if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Storage permission denied.')),
-            );
-          }
+          _snack(messenger, Strings.permissionDenied);
           return;
         }
       }
 
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Downloading image...')),
-        );
-      }
+      // 进度用一个可刷新的 SnackBar 表达。
+      final progress = ValueNotifier<double>(0);
+      final controller = messenger.showSnackBar(
+        SnackBar(
+          duration: const Duration(minutes: 5),
+          content: ValueListenableBuilder<double>(
+            valueListenable: progress,
+            builder: (context, value, child) => Row(
+              children: [
+                SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    value: value > 0 ? value : null,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Text('${Strings.downloading} ${(value * 100).toStringAsFixed(0)}%'),
+              ],
+            ),
+          ),
+        ),
+      );
 
+      final dio = ref.read(dioProvider);
       final tempDir = await getTemporaryDirectory();
       final savePath = '${tempDir.path}/$filename';
 
-      await Dio().download(url, savePath);
+      await dio.download(
+        url,
+        savePath,
+        onReceiveProgress: (received, total) {
+          if (total > 0) progress.value = received / total;
+        },
+      );
       await Gal.putImage(savePath);
 
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Image saved to gallery successfully!')),
-        );
-      }
+      controller.close();
+      progress.dispose();
+      _snack(messenger, Strings.downloadSaved);
     } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to save image: $e')),
-        );
-      }
+      messenger.hideCurrentSnackBar();
+      _snack(messenger, '${Strings.downloadFailed}: $e');
     }
   }
 
-  static void showDownloadDialog(BuildContext context, String url, String filename) {
-    showDialog(
-      context: context,
-      builder: (BuildContext dialogContext) {
-        return AlertDialog(
-          content: const Text('是否下载图片？(Download original image?)'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('否 (No)'),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.of(dialogContext).pop();
-                downloadAndSaveImage(context, url, filename);
-              },
-              child: const Text('是 (Yes)'),
-            ),
-          ],
-        );
-      },
-    );
+  static void _snack(ScaffoldMessengerState messenger, String msg) {
+    messenger.showSnackBar(SnackBar(content: Text(msg)));
   }
 }

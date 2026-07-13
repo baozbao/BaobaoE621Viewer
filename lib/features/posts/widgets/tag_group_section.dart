@@ -1,0 +1,202 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../models/e621_post.dart';
+import '../providers/post_list_provider.dart';
+import '../../settings/providers/settings_provider.dart';
+import '../../../core/constants/strings.dart';
+
+/// 详情页标签区：按组分色展示，画师组置顶（B3）。
+/// 点击 = 以此搜索；长按 = 菜单（加入黑名单 / 追加搜索 / 复制）。
+class TagGroupSection extends ConsumerWidget {
+  final PostTags tags;
+
+  const TagGroupSection({super.key, required this.tags});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    // 画师置顶，其后按 e621 惯例排序。
+    final groups = <_TagGroup>[
+      _TagGroup(
+        Strings.tagArtist,
+        tags.artist,
+        const Color(0xFFFFB85C),
+        Icons.brush_outlined,
+      ),
+      _TagGroup(
+        Strings.tagCharacter,
+        tags.character,
+        const Color(0xFFC792EA),
+        Icons.person_outline,
+      ),
+      _TagGroup(
+        Strings.tagSpecies,
+        tags.species,
+        const Color(0xFF82AAFF),
+        Icons.pets_outlined,
+      ),
+      _TagGroup(
+        Strings.tagCopyright,
+        tags.copyright,
+        const Color(0xFF7EE2A8),
+        Icons.copyright_outlined,
+      ),
+      _TagGroup(
+        Strings.tagGeneral,
+        tags.general,
+        Theme.of(context).colorScheme.onSurface,
+        Icons.sell_outlined,
+      ),
+      _TagGroup(Strings.tagMeta, tags.meta, Colors.grey, Icons.info_outline),
+    ].where((g) => g.tags.isNotEmpty).toList();
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: groups.map((g) => _buildGroup(context, ref, g)).toList(),
+      ),
+    );
+  }
+
+  Widget _buildGroup(BuildContext context, WidgetRef ref, _TagGroup group) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(group.icon, size: 16, color: group.color),
+              const SizedBox(width: 6),
+              Text(
+                group.title,
+                style: TextStyle(
+                  color: group.color,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 14,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: group.tags
+                .map((tag) => _TagChip(tag: tag, color: group.color))
+                .toList(),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TagGroup {
+  final String title;
+  final List<String> tags;
+  final Color color;
+  final IconData icon;
+  const _TagGroup(this.title, this.tags, this.color, this.icon);
+}
+
+class _TagChip extends ConsumerWidget {
+  final String tag;
+  final Color color;
+
+  const _TagChip({required this.tag, required this.color});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return GestureDetector(
+      onTap: () {
+        // 点击 = 以此单标签搜索，并返回首页。
+        ref.read(postListProvider.notifier).search(tag);
+        Navigator.of(context).popUntil((r) => r.isFirst);
+      },
+      onLongPress: () => _showMenu(context, ref),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: color.withAlpha(120)),
+        ),
+        child: Text(tag, style: TextStyle(color: color, fontSize: 14)),
+      ),
+    );
+  }
+
+  void _showMenu(BuildContext context, WidgetRef ref) {
+    showModalBottomSheet(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text(
+                tag,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+            ),
+            const Divider(height: 1),
+            ListTile(
+              leading: const Icon(Icons.search),
+              title: const Text(Strings.searchThisTag),
+              onTap: () {
+                Navigator.of(ctx).pop();
+                ref.read(postListProvider.notifier).search(tag);
+                Navigator.of(context).popUntil((r) => r.isFirst);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.add),
+              title: const Text(Strings.appendToSearch),
+              onTap: () {
+                Navigator.of(ctx).pop();
+                final current = ref.read(postListProvider).currentTags.trim();
+                final parts = current
+                    .split(' ')
+                    .where((s) => s.isNotEmpty)
+                    .toList();
+                if (!parts.contains(tag)) {
+                  final next = current.isEmpty ? tag : '$current $tag';
+                  ref.read(postListProvider.notifier).search(next);
+                }
+                Navigator.of(context).popUntil((r) => r.isFirst);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.block),
+              title: const Text(Strings.addToBlacklist),
+              onTap: () {
+                Navigator.of(ctx).pop();
+                ref.read(settingsProvider.notifier).addBlacklistTag(tag);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('$tag ${Strings.addToBlacklist}')),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.copy),
+              title: const Text(Strings.copy),
+              onTap: () {
+                Navigator.of(ctx).pop();
+                Clipboard.setData(ClipboardData(text: tag));
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(const SnackBar(content: Text(Strings.copied)));
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

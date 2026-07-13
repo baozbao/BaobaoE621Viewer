@@ -41,9 +41,9 @@ class PostRepository {
   ///
   /// Strategy:
   /// 1. Request `/posts?tags=xxx` WITHOUT a limit param, so e621 uses its
-  ///    server-side default per-page (found in `data-user-per-page` on <body>).
-  /// 2. Extract `data-total` (total pages at that per-page) from the <nav>.
-  /// 3. Extract `data-user-per-page` from the <body>.
+  ///    server-side default per-page (found in `data-user-per-page` on `<body>`).
+  /// 2. Extract `data-total` (total pages at that per-page) from the `<nav>`.
+  /// 3. Extract `data-user-per-page` from the `<body>`.
   /// 4. Return totalPages * perPage = approximate total post count.
   Future<int> fetchTotalPostCount({required String tags}) async {
     try {
@@ -69,6 +69,21 @@ class PostRepository {
     } catch (e) {
       log('Error fetching total post count from HTML: $e');
       return 0;
+    }
+  }
+
+  /// 热门榜单（E2）。scale = day / week / month。
+  Future<List<E621Post>> getPopular({String scale = 'day'}) async {
+    try {
+      final response = await _dio.get(
+        '/popular.json',
+        queryParameters: {'scale': scale},
+      );
+      final postResponse = E621PostResponse.fromJson(response.data);
+      return postResponse.posts;
+    } catch (e) {
+      log('Error fetching popular posts: $e');
+      rethrow;
     }
   }
 }
