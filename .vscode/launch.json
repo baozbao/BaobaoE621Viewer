@@ -1,0 +1,16 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Flutter (Chrome HTML渲染器)",
+            "request": "launch",
+            "type": "dart",
+            "args": [
+                "--web-renderer",
+                "html",
+                "--web-browser-flag=--disable-web-security",
+                "--web-browser-flag=--user-data-dir=C:\\temp\\chrome-dev-profile"
+            ]
+        }
+    ]
+}
