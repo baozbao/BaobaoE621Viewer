@@ -33,6 +33,12 @@ class MyApp extends ConsumerWidget {
       theme: ThemeData(
         brightness: Brightness.light,
         colorSchemeSeed: const Color(0xFF005282),
+        // 与深色主题一致：关闭所有点击/悬停/聚焦反馈特效。
+        splashFactory: NoSplash.splashFactory,
+        splashColor: Colors.transparent,
+        highlightColor: Colors.transparent,
+        focusColor: Colors.transparent,
+        hoverColor: Colors.transparent,
         useMaterial3: true,
       ),
       darkTheme: AppTheme.darkTheme,

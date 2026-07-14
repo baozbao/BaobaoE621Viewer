@@ -23,6 +23,9 @@ class AppSettings {
   final List<String> blacklistedTags;
   final LayoutMode layoutMode;
   final BrowseMode browseMode;
+  final bool showPreviewType;
+  final bool showPreviewUpvote;
+  final bool showPreviewScore;
 
   const AppSettings({
     this.siteHost = 'e621.net',
@@ -34,6 +37,9 @@ class AppSettings {
     this.blacklistedTags = const [],
     this.layoutMode = LayoutMode.masonry,
     this.browseMode = BrowseMode.paged,
+    this.showPreviewType = true,
+    this.showPreviewUpvote = true,
+    this.showPreviewScore = true,
   });
 
   AppSettings copyWith({
@@ -46,6 +52,9 @@ class AppSettings {
     List<String>? blacklistedTags,
     LayoutMode? layoutMode,
     BrowseMode? browseMode,
+    bool? showPreviewType,
+    bool? showPreviewUpvote,
+    bool? showPreviewScore,
   }) {
     return AppSettings(
       siteHost: siteHost ?? this.siteHost,
@@ -57,6 +66,9 @@ class AppSettings {
       blacklistedTags: blacklistedTags ?? this.blacklistedTags,
       layoutMode: layoutMode ?? this.layoutMode,
       browseMode: browseMode ?? this.browseMode,
+      showPreviewType: showPreviewType ?? this.showPreviewType,
+      showPreviewUpvote: showPreviewUpvote ?? this.showPreviewUpvote,
+      showPreviewScore: showPreviewScore ?? this.showPreviewScore,
     );
   }
 }
@@ -76,6 +88,9 @@ class SettingsNotifier extends Notifier<AppSettings> {
       blacklistedTags: prefs.getStringList(PrefKeys.blacklistedTags) ?? [],
       layoutMode: LayoutMode.values[prefs.getInt(PrefKeys.layoutMode) ?? LayoutMode.masonry.index],
       browseMode: BrowseMode.values[prefs.getInt(PrefKeys.browseMode) ?? BrowseMode.paged.index],
+      showPreviewType: prefs.getBool(PrefKeys.showPreviewType) ?? true,
+      showPreviewUpvote: prefs.getBool(PrefKeys.showPreviewUpvote) ?? true,
+      showPreviewScore: prefs.getBool(PrefKeys.showPreviewScore) ?? true,
     );
   }
 
@@ -119,6 +134,21 @@ class SettingsNotifier extends Notifier<AppSettings> {
   void updateBrowseMode(BrowseMode mode) {
     state = state.copyWith(browseMode: mode);
     _p.setInt(PrefKeys.browseMode, mode.index);
+  }
+
+  void updateShowPreviewType(bool value) {
+    state = state.copyWith(showPreviewType: value);
+    _p.setBool(PrefKeys.showPreviewType, value);
+  }
+
+  void updateShowPreviewUpvote(bool value) {
+    state = state.copyWith(showPreviewUpvote: value);
+    _p.setBool(PrefKeys.showPreviewUpvote, value);
+  }
+
+  void updateShowPreviewScore(bool value) {
+    state = state.copyWith(showPreviewScore: value);
+    _p.setBool(PrefKeys.showPreviewScore, value);
   }
 
   void addBlacklistTag(String tag) {

@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../posts/models/e621_post.dart';
 import '../../posts/views/post_detail_screen.dart';
+import '../../settings/providers/settings_provider.dart';
 import '../../../core/utils/post_format.dart';
 import '../../../core/widgets/native_web_image.dart';
 import '../../../core/widgets/hidden_post_placeholder.dart';
@@ -32,6 +33,12 @@ class PostCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final ratingColor = PostFormat.ratingColor(post.rating);
+    final settings = ref.watch(settingsProvider);
+    final typeBadge = PostFormat.typeBadge(post.file.ext);
+    final showBottomBar =
+        (settings.showPreviewType && typeBadge != null) ||
+        settings.showPreviewUpvote ||
+        settings.showPreviewScore;
 
     // url == null 不是加载失败，而是 e621 服务端故意抹掉：
     // 未登录命中全局黑名单 / DNP，或帖子已删除（见 HiddenPostPlaceholder）。
@@ -66,41 +73,75 @@ class PostCard extends ConsumerWidget {
           child: Container(width: 3, color: ratingColor),
         ),
 
-        // 底部渐变 + 分数（右）/ 类型徽标（左）。
-        Positioned(
-          left: 0,
-          right: 0,
-          bottom: 0,
-          child: Container(
-            padding: const EdgeInsets.fromLTRB(6, 12, 6, 4),
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.bottomCenter,
-                end: Alignment.topCenter,
-                colors: [Colors.black87, Colors.transparent],
+        // 底部渐变 + 可配置的预览信息。
+        if (showBottomBar)
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(6, 12, 6, 4),
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.bottomCenter,
+                  end: Alignment.topCenter,
+                  colors: [Colors.black87, Colors.transparent],
+                ),
+              ),
+              child: Row(
+                children: [
+                  if (settings.showPreviewType && typeBadge != null)
+                    Flexible(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: _Badge(text: typeBadge),
+                      ),
+                    ),
+                  const Spacer(),
+                  // 窄卡片放不下时整体缩放，避免溢出条纹。
+                  Flexible(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerRight,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (settings.showPreviewScore) ...[
+                            const Icon(
+                              Icons.favorite,
+                              size: 12,
+                              color: Colors.redAccent,
+                            ),
+                            const SizedBox(width: 1),
+                            _OverlayCount(
+                              text: PostFormat.compactCount(post.favCount),
+                              color: Colors.redAccent,
+                            ),
+                          ],
+                          if (settings.showPreviewScore &&
+                              settings.showPreviewUpvote)
+                            const SizedBox(width: 6),
+                          if (settings.showPreviewUpvote) ...[
+                            Icon(
+                              Icons.arrow_upward,
+                              size: 12,
+                              color: PostFormat.scoreColor(post.score.total),
+                            ),
+                            const SizedBox(width: 1),
+                            _OverlayCount(
+                              text: PostFormat.compactCount(post.score.total),
+                              color: PostFormat.scoreColor(post.score.total),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                if (PostFormat.typeBadge(post.file.ext) != null)
-                  _Badge(text: PostFormat.typeBadge(post.file.ext)!),
-                const Spacer(),
-                Icon(Icons.arrow_upward, size: 12, color: PostFormat.scoreColor(post.score.total)),
-                const SizedBox(width: 1),
-                Text(
-                  PostFormat.compactCount(post.score.total),
-                  style: TextStyle(
-                    color: PostFormat.scoreColor(post.score.total),
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    shadows: const [Shadow(color: Colors.black, blurRadius: 2)],
-                  ),
-                ),
-              ],
-            ),
           ),
-        ),
       ],
     );
 
@@ -130,6 +171,26 @@ class _Badge extends StatelessWidget {
       child: Text(
         text,
         style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+      ),
+    );
+  }
+}
+
+class _OverlayCount extends StatelessWidget {
+  final String text;
+  final Color color;
+
+  const _OverlayCount({required this.text, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: TextStyle(
+        color: color,
+        fontSize: 11,
+        fontWeight: FontWeight.bold,
+        shadows: const [Shadow(color: Colors.black, blurRadius: 2)],
       ),
     );
   }

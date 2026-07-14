@@ -16,6 +16,12 @@ class AppTheme {
         elevation: 0,
         centerTitle: true,
       ),
+      // 彻底关闭所有点击/悬停/聚焦反馈特效，避免主题蓝色在深色背景与 Web 上残留。
+      splashFactory: NoSplash.splashFactory,
+      splashColor: Colors.transparent,
+      highlightColor: Colors.transparent,
+      focusColor: Colors.transparent,
+      hoverColor: Colors.transparent,
       useMaterial3: true,
       pageTransitionsTheme: const PageTransitionsTheme(
         builders: {

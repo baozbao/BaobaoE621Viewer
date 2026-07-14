@@ -145,6 +145,59 @@ class SettingsScreen extends ConsumerWidget {
             onTap: () => context.push('/settings/preview'),
           ),
 
+          ListTile(
+            leading: const Icon(Icons.label_outline),
+            title: const Text(Strings.previewOverlay),
+            subtitle: Wrap(
+              spacing: 8,
+              runSpacing: 4,
+              children: const [
+                _ColoredSettingLabel(
+                  text: Strings.previewType,
+                  color: Colors.white,
+                ),
+                _ColoredSettingLabel(
+                  text: Strings.previewUpvote,
+                  color: Color(0xFF35D08A),
+                ),
+                _ColoredSettingLabel(
+                  text: Strings.previewScore,
+                  color: Colors.redAccent,
+                ),
+              ],
+            ),
+          ),
+          SwitchListTile(
+            dense: true,
+            secondary: const Icon(Icons.movie_filter_outlined),
+            title: const _ColoredSettingLabel(
+              text: Strings.previewType,
+              color: Colors.white,
+            ),
+            value: settings.showPreviewType,
+            onChanged: notifier.updateShowPreviewType,
+          ),
+          SwitchListTile(
+            dense: true,
+            secondary: const Icon(Icons.arrow_upward),
+            title: const _ColoredSettingLabel(
+              text: Strings.previewUpvote,
+              color: Color(0xFF35D08A),
+            ),
+            value: settings.showPreviewUpvote,
+            onChanged: notifier.updateShowPreviewUpvote,
+          ),
+          SwitchListTile(
+            dense: true,
+            secondary: const Icon(Icons.favorite_border),
+            title: const _ColoredSettingLabel(
+              text: Strings.previewScore,
+              color: Colors.redAccent,
+            ),
+            value: settings.showPreviewScore,
+            onChanged: notifier.updateShowPreviewScore,
+          ),
+
           const Divider(),
           _sectionHeader(context, Strings.sectionDev),
 
@@ -230,6 +283,21 @@ class SettingsScreen extends ConsumerWidget {
             Icon(Icons.check, color: Theme.of(ctx).colorScheme.primary),
         ],
       ),
+    );
+  }
+}
+
+class _ColoredSettingLabel extends StatelessWidget {
+  final String text;
+  final Color color;
+
+  const _ColoredSettingLabel({required this.text, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: TextStyle(color: color, fontWeight: FontWeight.w600),
     );
   }
 }

@@ -93,6 +93,10 @@ class Strings {
   static const editBlacklistSub = '添加或删除黑名单标签';
   static const previewGrid = '预览与网格设置';
   static const previewGridSub = '调整缩略图高度、列数与加载数量';
+  static const previewOverlay = '预览图信息';
+  static const previewType = '类型';
+  static const previewUpvote = '点赞';
+  static const previewScore = '评分';
   static const layoutMode = '布局模式';
   static const layoutMasonry = '瀑布流';
   static const layoutGrid = '等高网格';
