@@ -1,7 +1,7 @@
 /// SharedPreferences 键集中管理，避免魔法字符串拼写错误。
 class PrefKeys {
   static const siteHost = 'siteHost';
-  static const themeMode = 'themeMode';
+  static const themeVariant = 'themeVariant';
   static const previewHeight = 'previewHeight';
   static const worksPerRow = 'worksPerRow';
   static const pageSize = 'pageSize';

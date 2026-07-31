@@ -83,6 +83,7 @@ class Strings {
   static const appearanceSystem = '跟随系统';
   static const appearanceLight = '浅色';
   static const appearanceDark = '深色';
+  static const appearanceE621 = 'E621';
   static const contentSource = '内容源';
   static const contentSourceFull = 'e621.net（完整内容）';
   static const contentSourceSafe = 'e926.net（仅 Safe 内容）';

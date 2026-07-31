@@ -1,7 +1,7 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/constants/pref_keys.dart';
+import '../../../core/theme/app_theme.dart';
 
 final sharedPreferencesProvider = Provider<SharedPreferences>((ref) {
   throw UnimplementedError('sharedPreferencesProvider must be overridden in main.dart');
@@ -15,7 +15,7 @@ enum BrowseMode { infinite, paged }
 
 class AppSettings {
   final String siteHost; // e621.net or e926.net
-  final ThemeMode themeMode;
+  final AppThemeVariant themeVariant;
   final int previewHeight;
   final int worksPerRow;
   final int pageSize;
@@ -29,7 +29,7 @@ class AppSettings {
 
   const AppSettings({
     this.siteHost = 'e621.net',
-    this.themeMode = ThemeMode.dark,
+    this.themeVariant = AppThemeVariant.e621,
     this.previewHeight = 150,
     this.worksPerRow = 4,
     this.pageSize = 40,
@@ -44,7 +44,7 @@ class AppSettings {
 
   AppSettings copyWith({
     String? siteHost,
-    ThemeMode? themeMode,
+    AppThemeVariant? themeVariant,
     int? previewHeight,
     int? worksPerRow,
     int? pageSize,
@@ -58,7 +58,7 @@ class AppSettings {
   }) {
     return AppSettings(
       siteHost: siteHost ?? this.siteHost,
-      themeMode: themeMode ?? this.themeMode,
+      themeVariant: themeVariant ?? this.themeVariant,
       previewHeight: previewHeight ?? this.previewHeight,
       worksPerRow: worksPerRow ?? this.worksPerRow,
       pageSize: pageSize ?? this.pageSize,
@@ -80,7 +80,7 @@ class SettingsNotifier extends Notifier<AppSettings> {
 
     return AppSettings(
       siteHost: prefs.getString(PrefKeys.siteHost) ?? 'e621.net',
-      themeMode: ThemeMode.values[prefs.getInt(PrefKeys.themeMode) ?? ThemeMode.dark.index],
+      themeVariant: AppThemeVariant.values[prefs.getInt(PrefKeys.themeVariant) ?? AppThemeVariant.e621.index],
       previewHeight: prefs.getInt(PrefKeys.previewHeight) ?? 150,
       worksPerRow: prefs.getInt(PrefKeys.worksPerRow) ?? 4,
       pageSize: prefs.getInt(PrefKeys.pageSize) ?? 40,
@@ -101,9 +101,9 @@ class SettingsNotifier extends Notifier<AppSettings> {
     _p.setString(PrefKeys.siteHost, host);
   }
 
-  void updateThemeMode(ThemeMode mode) {
-    state = state.copyWith(themeMode: mode);
-    _p.setInt(PrefKeys.themeMode, mode.index);
+  void updateThemeVariant(AppThemeVariant variant) {
+    state = state.copyWith(themeVariant: variant);
+    _p.setInt(PrefKeys.themeVariant, variant.index);
   }
 
   void updatePreviewHeight(int height) {

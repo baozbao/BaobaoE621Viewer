@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../providers/settings_provider.dart';
 import '../../posts/providers/post_list_provider.dart';
 import '../../../core/constants/strings.dart';
+import '../../../core/theme/app_theme.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -61,35 +62,44 @@ class SettingsScreen extends ConsumerWidget {
           const Divider(),
           _sectionHeader(context, Strings.sectionDisplay),
 
-          // D1:补上主题切换入口（此前功能已实现但无 UI）。
+          // 主题切换：三套独立主题（E621 / 深色 / 浅色），默认 E621。
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-            child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(Icons.brightness_6, size: 22),
-                const SizedBox(width: 12),
-                const Text(Strings.appearance),
-                const Spacer(),
-                SegmentedButton<ThemeMode>(
-                  style: const ButtonStyle(
-                    visualDensity: VisualDensity.compact,
-                  ),
-                  segments: const [
-                    ButtonSegment(
-                      value: ThemeMode.system,
-                      label: Text(Strings.appearanceSystem),
-                    ),
-                    ButtonSegment(
-                      value: ThemeMode.light,
-                      label: Text(Strings.appearanceLight),
-                    ),
-                    ButtonSegment(
-                      value: ThemeMode.dark,
-                      label: Text(Strings.appearanceDark),
-                    ),
+                Row(
+                  children: const [
+                    Icon(Icons.brightness_6, size: 22),
+                    SizedBox(width: 12),
+                    Text(Strings.appearance),
                   ],
-                  selected: {settings.themeMode},
-                  onSelectionChanged: (s) => notifier.updateThemeMode(s.first),
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: SegmentedButton<AppThemeVariant>(
+                    style: const ButtonStyle(
+                      visualDensity: VisualDensity.compact,
+                    ),
+                    segments: const [
+                      ButtonSegment(
+                        value: AppThemeVariant.e621,
+                        label: Text(Strings.appearanceE621),
+                      ),
+                      ButtonSegment(
+                        value: AppThemeVariant.dark,
+                        label: Text(Strings.appearanceDark),
+                      ),
+                      ButtonSegment(
+                        value: AppThemeVariant.light,
+                        label: Text(Strings.appearanceLight),
+                      ),
+                    ],
+                    selected: {settings.themeVariant},
+                    onSelectionChanged: (s) =>
+                        notifier.updateThemeVariant(s.first),
+                  ),
                 ),
               ],
             ),
@@ -152,10 +162,7 @@ class SettingsScreen extends ConsumerWidget {
               spacing: 8,
               runSpacing: 4,
               children: const [
-                _ColoredSettingLabel(
-                  text: Strings.previewType,
-                  color: Colors.white,
-                ),
+                _ColoredSettingLabel(text: Strings.previewType),
                 _ColoredSettingLabel(
                   text: Strings.previewUpvote,
                   color: Color(0xFF35D08A),
@@ -170,10 +177,7 @@ class SettingsScreen extends ConsumerWidget {
           SwitchListTile(
             dense: true,
             secondary: const Icon(Icons.movie_filter_outlined),
-            title: const _ColoredSettingLabel(
-              text: Strings.previewType,
-              color: Colors.white,
-            ),
+            title: const _ColoredSettingLabel(text: Strings.previewType),
             value: settings.showPreviewType,
             onChanged: notifier.updateShowPreviewType,
           ),
@@ -289,15 +293,20 @@ class SettingsScreen extends ConsumerWidget {
 
 class _ColoredSettingLabel extends StatelessWidget {
   final String text;
-  final Color color;
 
-  const _ColoredSettingLabel({required this.text, required this.color});
+  /// null = 跟随主题文字色（浅色主题下白色会隐形，故类型标签传 null）。
+  final Color? color;
+
+  const _ColoredSettingLabel({required this.text, this.color});
 
   @override
   Widget build(BuildContext context) {
     return Text(
       text,
-      style: TextStyle(color: color, fontWeight: FontWeight.w600),
+      style: TextStyle(
+        color: color ?? Theme.of(context).colorScheme.onSurface,
+        fontWeight: FontWeight.w600,
+      ),
     );
   }
 }
