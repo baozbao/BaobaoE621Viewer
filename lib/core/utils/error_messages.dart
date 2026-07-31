@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:gal/gal.dart';
 import '../constants/strings.dart';
 
 /// 把底层异常翻译成人话文案（A5）。
@@ -21,6 +22,20 @@ String humanizeError(Object? error) {
         return '请求失败（$code）';
       default:
         return Strings.errorUnknown;
+    }
+  }
+  // 相册写入失败：Gal 只给出粗粒度的枚举，但区分「没权限」和「存不下」
+  // 对用户是有意义的——前者要去设置里开，后者要去清空间。
+  if (error is GalException) {
+    switch (error.type) {
+      case GalExceptionType.accessDenied:
+        return Strings.permissionDenied;
+      case GalExceptionType.notEnoughSpace:
+        return '设备存储空间不足';
+      case GalExceptionType.notSupportedFormat:
+        return '相册不支持该文件格式';
+      case GalExceptionType.unexpected:
+        return '保存到相册失败';
     }
   }
   return Strings.errorUnknown;

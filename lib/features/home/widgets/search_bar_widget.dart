@@ -29,7 +29,17 @@ class _SearchBarWidgetState extends ConsumerState<SearchBarWidget> {
   }
 
   void _submitSearch(String query) {
-    if (query.trim().isEmpty) return;
+    // 空提交不改变搜索条件，但 SearchAnchor 的 closeView 已经把输入框刷成了
+    // 空串。此时若直接 return，输入框显示空、provider 里还是旧标签，二者失同步：
+    // 之后每次提交都是空串又被这里拦掉，界面看着能点却怎么都刷不出来，
+    // 只有输入新词让 currentTags 真的变化才能恢复。所以要把输入框回填成
+    // 当前实际生效的搜索条件，让 UI 始终反映真实状态。
+    if (query.trim().isEmpty) {
+      _controller.text = ref.read(postListProvider).currentTags;
+      _controller.selection =
+          TextSelection.collapsed(offset: _controller.text.length);
+      return;
+    }
     ref.read(postListProvider.notifier).search(query);
 
     // 延迟更新历史：搜索视图关闭时有动画，此时若立即改历史 provider，
