@@ -55,10 +55,15 @@ void main() {
     test('未完成的请求停在 pending，便于发现卡住的调用', () {
       notifier.logRequest(entry(1));
       notifier.logRequest(entry(2));
-      notifier.completeRequest(requestId: 2, status: LogStatus.success, statusCode: 200);
+      notifier.completeRequest(
+        requestId: 2,
+        status: LogStatus.success,
+        statusCode: 200,
+      );
 
-      final pending =
-          container.read(logProvider).where((e) => e.status == LogStatus.pending);
+      final pending = container
+          .read(logProvider)
+          .where((e) => e.status == LogStatus.pending);
       expect(pending.length, 1);
       expect(pending.single.requestId, 1);
     });

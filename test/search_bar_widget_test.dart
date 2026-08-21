@@ -18,9 +18,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
-        child: const MaterialApp(
-          home: Scaffold(body: SearchBarWidget()),
-        ),
+        child: const MaterialApp(home: Scaffold(body: SearchBarWidget())),
       ),
     );
     await tester.pumpAndSettle();
@@ -60,9 +58,7 @@ void main() {
         child: Consumer(
           builder: (context, ref, _) {
             container = ProviderScope.containerOf(context);
-            return const MaterialApp(
-              home: Scaffold(body: SearchBarWidget()),
-            );
+            return const MaterialApp(home: Scaffold(body: SearchBarWidget()));
           },
         ),
       ),

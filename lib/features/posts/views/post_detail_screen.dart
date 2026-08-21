@@ -9,10 +9,12 @@ import '../../popular/providers/popular_provider.dart';
 import '../../settings/providers/settings_provider.dart';
 import '../../history/providers/history_provider.dart';
 import '../../../core/constants/strings.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/post_format.dart';
 import '../../../core/widgets/native_web_image.dart';
 import '../../../core/widgets/hidden_post_placeholder.dart';
 import '../../../core/widgets/media_player.dart';
+import '../../../core/widgets/frosted_surface.dart';
 
 /// 详情页路由参数（B2:传索引 + 数据源，支持画廊左右滑）。
 class PostDetailArgs {
@@ -130,6 +132,14 @@ class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text('#${current.id}'),
+        // 毛玻璃顶栏：大图顶到栏下时透出模糊色影，比实色挡板更贴合看图场景。
+        backgroundColor: Colors.transparent,
+        scrolledUnderElevation: 0,
+        flexibleSpace: FrostedSurface(
+          border: AppTheme.surfaceBorder(
+            light: Theme.of(context).brightness == Brightness.light,
+          ),
+        ),
         actions: [
           IconButton(
             tooltip: isFav

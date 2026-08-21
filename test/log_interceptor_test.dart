@@ -12,16 +12,24 @@ class _FakeAdapter implements HttpClientAdapter {
   final bool throwError;
 
   @override
-  Future<ResponseBody> fetch(RequestOptions options, Stream<List<int>>? stream,
-      Future<void>? cancelFuture) async {
+  Future<ResponseBody> fetch(
+    RequestOptions options,
+    Stream<List<int>>? stream,
+    Future<void>? cancelFuture,
+  ) async {
     if (throwError) {
       throw DioException.connectionError(
         requestOptions: options,
         reason: 'boom',
       );
     }
-    return ResponseBody.fromString('[]', statusCode,
-        headers: {Headers.contentTypeHeader: [Headers.jsonContentType]});
+    return ResponseBody.fromString(
+      '[]',
+      statusCode,
+      headers: {
+        Headers.contentTypeHeader: [Headers.jsonContentType],
+      },
+    );
   }
 
   @override
@@ -37,8 +45,10 @@ void main() {
     container = ProviderContainer();
     notifier = container.read(logProvider.notifier);
     dio = Dio(BaseOptions(baseUrl: 'https://e621.net'))
-      ..httpClientAdapter =
-          _FakeAdapter(statusCode: statusCode, throwError: throwError)
+      ..httpClientAdapter = _FakeAdapter(
+        statusCode: statusCode,
+        throwError: throwError,
+      )
       ..interceptors.add(AppLogInterceptor(notifier));
   }
 
@@ -83,12 +93,16 @@ void main() {
   test('extra 里标记的类型被采纳（下载 / 补全各自归类）', () async {
     setUpDio();
 
-    await dio.get('/file.webm',
-        options: Options(
-            extra: {AppLogInterceptor.typeKey: LogType.download}));
-    await dio.get('/tags/autocomplete.json',
-        options: Options(
-            extra: {AppLogInterceptor.typeKey: LogType.autocomplete}));
+    await dio.get(
+      '/file.webm',
+      options: Options(extra: {AppLogInterceptor.typeKey: LogType.download}),
+    );
+    await dio.get(
+      '/tags/autocomplete.json',
+      options: Options(
+        extra: {AppLogInterceptor.typeKey: LogType.autocomplete},
+      ),
+    );
 
     final logs = container.read(logProvider);
     expect(logs.where((e) => e.type == LogType.download).length, 1);

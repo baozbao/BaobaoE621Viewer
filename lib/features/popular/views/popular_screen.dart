@@ -21,7 +21,11 @@ class _PopularScreenState extends ConsumerState<PopularScreen>
     with SingleTickerProviderStateMixin {
   late final TabController _tab;
 
-  static const _scales = [PopularScale.day, PopularScale.week, PopularScale.month];
+  static const _scales = [
+    PopularScale.day,
+    PopularScale.week,
+    PopularScale.month,
+  ];
 
   @override
   void initState() {
@@ -52,9 +56,7 @@ class _PopularScreenState extends ConsumerState<PopularScreen>
       ),
       body: TabBarView(
         controller: _tab,
-        children: [
-          for (final scale in _scales) _PopularTab(scale: scale),
-        ],
+        children: [for (final scale in _scales) _PopularTab(scale: scale)],
       ),
     );
   }

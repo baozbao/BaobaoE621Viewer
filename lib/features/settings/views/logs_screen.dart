@@ -10,7 +10,9 @@ class _LogFilter extends Notifier<LogType?> {
   void set(LogType? type) => state = type;
 }
 
-final _logFilterProvider = NotifierProvider<_LogFilter, LogType?>(_LogFilter.new);
+final _logFilterProvider = NotifierProvider<_LogFilter, LogType?>(
+  _LogFilter.new,
+);
 
 class LogsScreen extends ConsumerWidget {
   const LogsScreen({super.key});
@@ -44,7 +46,9 @@ class LogsScreen extends ConsumerWidget {
                     child: Text(
                       all.isEmpty ? '暂无日志记录' : '当前筛选下没有记录',
                       style: TextStyle(
-                        color: Theme.of(context).colorScheme.onSurface.withAlpha(150),
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withAlpha(150),
                       ),
                     ),
                   )
@@ -191,7 +195,10 @@ class _LogCard extends StatelessWidget {
   Widget _row(String label, String value, Color muted) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 4),
-      child: Text('$label: $value', style: TextStyle(fontSize: 12, color: muted)),
+      child: Text(
+        '$label: $value',
+        style: TextStyle(fontSize: 12, color: muted),
+      ),
     );
   }
 

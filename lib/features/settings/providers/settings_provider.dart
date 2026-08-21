@@ -4,7 +4,9 @@ import '../../../core/constants/pref_keys.dart';
 import '../../../core/theme/app_theme.dart';
 
 final sharedPreferencesProvider = Provider<SharedPreferences>((ref) {
-  throw UnimplementedError('sharedPreferencesProvider must be overridden in main.dart');
+  throw UnimplementedError(
+    'sharedPreferencesProvider must be overridden in main.dart',
+  );
 });
 
 /// 首页网格布局模式（A1）。
@@ -26,6 +28,7 @@ class AppSettings {
   final bool showPreviewType;
   final bool showPreviewUpvote;
   final bool showPreviewScore;
+  final bool showPostCardDiagnostic;
 
   const AppSettings({
     this.siteHost = 'e621.net',
@@ -40,6 +43,7 @@ class AppSettings {
     this.showPreviewType = true,
     this.showPreviewUpvote = true,
     this.showPreviewScore = true,
+    this.showPostCardDiagnostic = false,
   });
 
   AppSettings copyWith({
@@ -55,6 +59,7 @@ class AppSettings {
     bool? showPreviewType,
     bool? showPreviewUpvote,
     bool? showPreviewScore,
+    bool? showPostCardDiagnostic,
   }) {
     return AppSettings(
       siteHost: siteHost ?? this.siteHost,
@@ -69,6 +74,8 @@ class AppSettings {
       showPreviewType: showPreviewType ?? this.showPreviewType,
       showPreviewUpvote: showPreviewUpvote ?? this.showPreviewUpvote,
       showPreviewScore: showPreviewScore ?? this.showPreviewScore,
+      showPostCardDiagnostic:
+          showPostCardDiagnostic ?? this.showPostCardDiagnostic,
     );
   }
 }
@@ -80,17 +87,24 @@ class SettingsNotifier extends Notifier<AppSettings> {
 
     return AppSettings(
       siteHost: prefs.getString(PrefKeys.siteHost) ?? 'e621.net',
-      themeVariant: AppThemeVariant.values[prefs.getInt(PrefKeys.themeVariant) ?? AppThemeVariant.e621.index],
+      themeVariant:
+          AppThemeVariant.values[prefs.getInt(PrefKeys.themeVariant) ??
+              AppThemeVariant.e621.index],
       previewHeight: prefs.getInt(PrefKeys.previewHeight) ?? 150,
       worksPerRow: prefs.getInt(PrefKeys.worksPerRow) ?? 4,
       pageSize: prefs.getInt(PrefKeys.pageSize) ?? 40,
       enableBlacklist: prefs.getBool(PrefKeys.enableBlacklist) ?? true,
       blacklistedTags: prefs.getStringList(PrefKeys.blacklistedTags) ?? [],
-      layoutMode: LayoutMode.values[prefs.getInt(PrefKeys.layoutMode) ?? LayoutMode.masonry.index],
-      browseMode: BrowseMode.values[prefs.getInt(PrefKeys.browseMode) ?? BrowseMode.paged.index],
+      layoutMode:
+          LayoutMode.values[prefs.getInt(PrefKeys.layoutMode) ??
+              LayoutMode.masonry.index],
+      browseMode: BrowseMode
+          .values[prefs.getInt(PrefKeys.browseMode) ?? BrowseMode.paged.index],
       showPreviewType: prefs.getBool(PrefKeys.showPreviewType) ?? true,
       showPreviewUpvote: prefs.getBool(PrefKeys.showPreviewUpvote) ?? true,
       showPreviewScore: prefs.getBool(PrefKeys.showPreviewScore) ?? true,
+      showPostCardDiagnostic:
+          prefs.getBool(PrefKeys.showPostCardDiagnostic) ?? false,
     );
   }
 
@@ -149,6 +163,11 @@ class SettingsNotifier extends Notifier<AppSettings> {
   void updateShowPreviewScore(bool value) {
     state = state.copyWith(showPreviewScore: value);
     _p.setBool(PrefKeys.showPreviewScore, value);
+  }
+
+  void updateShowPostCardDiagnostic(bool value) {
+    state = state.copyWith(showPostCardDiagnostic: value);
+    _p.setBool(PrefKeys.showPostCardDiagnostic, value);
   }
 
   void addBlacklistTag(String tag) {

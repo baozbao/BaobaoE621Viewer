@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'core/theme/app_theme.dart';
 import 'core/routing/app_router.dart';
+import 'core/widgets/no_overscroll_behavior.dart';
 import 'features/settings/providers/settings_provider.dart';
 
 void main() async {
@@ -41,9 +42,10 @@ class MyApp extends ConsumerWidget {
       // 切主题时全屏渐变重建（Web 上平台视图图片还会跟着重建），就是那股延迟感。
       // 归零后切换干脆利落，没有中间过渡色。
       themeAnimationDuration: Duration.zero,
+      // 全局取消越界拉伸/光晕（见 NoOverscrollBehavior）。
+      scrollBehavior: const NoOverscrollBehavior(),
       routerConfig: router,
       debugShowCheckedModeBanner: false,
     );
   }
 }
-

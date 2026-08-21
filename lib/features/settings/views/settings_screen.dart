@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../providers/settings_provider.dart';
 import '../../posts/providers/post_list_provider.dart';
+import '../../search/providers/search_history_provider.dart';
 import '../../../core/constants/strings.dart';
 import '../../../core/theme/app_theme.dart';
 
@@ -57,6 +58,23 @@ class SettingsScreen extends ConsumerWidget {
             subtitle: const Text(Strings.historySub),
             trailing: const Icon(Icons.chevron_right),
             onTap: () => context.push('/settings/history'),
+          ),
+
+          // 清空搜索历史放这里而不是搜索下拉层里（PRD-028）：下拉层里它会紧挨
+          // 单条删除的 x，误触一次就抹掉 30 条且无法撤销。
+          Consumer(
+            builder: (context, ref, _) {
+              final count = ref.watch(searchHistoryProvider).length;
+              return ListTile(
+                leading: const Icon(Icons.manage_search),
+                title: const Text(Strings.clearSearchHistory),
+                subtitle: Text('$count 条记录'),
+                enabled: count > 0,
+                onTap: count > 0
+                    ? () => _confirmClearSearchHistory(context, ref)
+                    : null,
+              );
+            },
           ),
 
           const Divider(),
@@ -205,6 +223,15 @@ class SettingsScreen extends ConsumerWidget {
           const Divider(),
           _sectionHeader(context, Strings.sectionDev),
 
+          SwitchListTile(
+            dense: true,
+            secondary: const Icon(Icons.bug_report),
+            title: const Text('卡片诊断模式'),
+            subtitle: const Text('开发者选项：卡片显示调试信息'),
+            value: settings.showPostCardDiagnostic,
+            onChanged: notifier.updateShowPostCardDiagnostic,
+          ),
+
           ListTile(
             leading: const Icon(Icons.bug_report),
             title: const Text(Strings.systemLogs),
@@ -217,17 +244,66 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 
+  /// 清空搜索历史需二次确认：一次点击抹掉全部记录且无法撤销。
+  void _confirmClearSearchHistory(BuildContext context, WidgetRef ref) {
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text(Strings.clearSearchHistory),
+        content: const Text(Strings.clearSearchHistoryConfirm),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text(Strings.cancel),
+          ),
+          TextButton(
+            onPressed: () {
+              ref.read(searchHistoryProvider.notifier).clearHistory();
+              Navigator.of(ctx).pop();
+              ScaffoldMessenger.of(context)
+                ..hideCurrentSnackBar()
+                ..showSnackBar(
+                  const SnackBar(
+                    content: Text(Strings.searchHistoryCleared),
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+            },
+            child: const Text(Strings.confirm),
+          ),
+        ],
+      ),
+    );
+  }
+
   // A8:分区标题用主题色，不再硬编码 Colors.blue。
   Widget _sectionHeader(BuildContext context, String text) {
+    final primary = Theme.of(context).colorScheme.primary;
+
     return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Text(
-        text,
-        style: TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.bold,
-          color: Theme.of(context).colorScheme.primary,
-        ),
+      padding: const EdgeInsets.fromLTRB(16, 18, 16, 8),
+      child: Row(
+        children: [
+          // 一道主色短条：比单纯加粗文字更能把长列表切分成段落。
+          Container(
+            width: 3,
+            height: 14,
+            decoration: BoxDecoration(
+              color: primary,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            text,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.6,
+              color: primary,
+            ),
+          ),
+        ],
       ),
     );
   }

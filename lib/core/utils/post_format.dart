@@ -80,6 +80,22 @@ class PostFormat {
     }
   }
 
+  /// 窄卡片用的短版类型徽标：视频只留播放符号，宽度约为全版的 1/3。
+  /// 每行 4~6 张时列宽只有几十像素，全版塞不进去，而缩字号会糊成一条线。
+  static String? typeBadgeShort(String ext) {
+    switch (ext) {
+      case 'webm':
+      case 'mp4':
+        return '▶';
+      case 'gif':
+        return 'GIF';
+      case 'swf':
+        return 'SWF';
+      default:
+        return null;
+    }
+  }
+
   /// e621 tag category 编号 → 配色（用于搜索补全项、标签分组）。
   /// 0 general, 1 artist, 3 copyright, 4 character, 5 species, 6 invalid,
   /// 7 meta, 8 lore。

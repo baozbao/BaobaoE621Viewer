@@ -6,7 +6,8 @@ Widget buildNativeWebImage(String imageUrl, BoxFit fit) {
     imageUrl: imageUrl,
     fit: fit,
     httpHeaders: const {'User-Agent': 'E621Mobile/1.0 (by Baozbao)'},
-    placeholder: (context, url) => const Center(child: CircularProgressIndicator()),
+    placeholder: (context, url) =>
+        const Center(child: CircularProgressIndicator()),
     errorWidget: (context, url, error) => const Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,

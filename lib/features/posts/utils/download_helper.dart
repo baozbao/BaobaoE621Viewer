@@ -17,7 +17,11 @@ class DownloadHelper {
   const DownloadHelper._();
 
   /// 弹出画质选择底部弹层：原图 / 采样图（带各自体积）。
-  static void showDownloadSheet(BuildContext context, WidgetRef ref, E621Post post) {
+  static void showDownloadSheet(
+    BuildContext context,
+    WidgetRef ref,
+    E621Post post,
+  ) {
     if (post.file.url == null) return;
 
     final originalUrl = post.file.url!;
@@ -31,8 +35,10 @@ class DownloadHelper {
           children: [
             const Padding(
               padding: EdgeInsets.all(16),
-              child: Text(Strings.downloadChooseQuality,
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              child: Text(
+                Strings.downloadChooseQuality,
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
             ),
             const Divider(height: 1),
             ListTile(
@@ -122,7 +128,9 @@ class DownloadHelper {
                   ),
                 ),
                 const SizedBox(width: 16),
-                Text('${Strings.downloading} ${(value * 100).toStringAsFixed(0)}%'),
+                Text(
+                  '${Strings.downloading} ${(value * 100).toStringAsFixed(0)}%',
+                ),
               ],
             ),
           ),
@@ -138,9 +146,7 @@ class DownloadHelper {
         savePath,
         // 在日志里和普通查询区分开：下载动辄几十 MB，混在 API 请求里
         // 会把真正要看的查询记录淹掉。
-        options: Options(
-          extra: {AppLogInterceptor.typeKey: LogType.download},
-        ),
+        options: Options(extra: {AppLogInterceptor.typeKey: LogType.download}),
         onReceiveProgress: (received, total) {
           if (total > 0) progress.value = received / total;
         },

@@ -17,4 +17,5 @@ class PrefKeys {
   static const showPreviewType = 'show_preview_type';
   static const showPreviewUpvote = 'show_preview_upvote';
   static const showPreviewScore = 'show_preview_score';
+  static const showPostCardDiagnostic = 'show_post_card_diagnostic';
 }

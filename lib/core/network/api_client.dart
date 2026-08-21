@@ -5,15 +5,13 @@ import '../services/log_service.dart';
 
 final dioProvider = Provider<Dio>((ref) {
   final settings = ref.watch(settingsProvider);
-  
+
   final dio = Dio(
     BaseOptions(
       baseUrl: 'https://${settings.siteHost}',
       connectTimeout: const Duration(seconds: 15),
       receiveTimeout: const Duration(seconds: 15),
-      headers: {
-        'User-Agent': 'E621Mobile/1.0 (by Baozbao)',
-      },
+      headers: {'User-Agent': 'E621Mobile/1.0 (by Baozbao)'},
     ),
   );
 

@@ -22,11 +22,7 @@ class PostRepository {
     try {
       final response = await _dio.get(
         '/posts.json',
-        queryParameters: {
-          'tags': tags,
-          'page': page,
-          'limit': limit,
-        },
+        queryParameters: {'tags': tags, 'page': page, 'limit': limit},
       );
 
       final postResponse = E621PostResponse.fromJson(response.data);
@@ -66,7 +62,9 @@ class PostRepository {
       // Extract data-total="X" from the pagination nav
       final totalMatch = RegExp(r'data-total="(\d+)"').firstMatch(html);
       // Extract data-user-per-page="X" from the <body> tag
-      final perPageMatch = RegExp(r'data-user-per-page="(\d+)"').firstMatch(html);
+      final perPageMatch = RegExp(
+        r'data-user-per-page="(\d+)"',
+      ).firstMatch(html);
 
       if (totalMatch != null && perPageMatch != null) {
         final totalPages = int.parse(totalMatch.group(1)!);
