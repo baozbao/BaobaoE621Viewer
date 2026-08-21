@@ -1,10 +1,12 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/constants/pref_keys.dart';
+import '../../../core/theme/app_theme.dart';
 
 final sharedPreferencesProvider = Provider<SharedPreferences>((ref) {
-  throw UnimplementedError('sharedPreferencesProvider must be overridden in main.dart');
+  throw UnimplementedError(
+    'sharedPreferencesProvider must be overridden in main.dart',
+  );
 });
 
 /// 首页网格布局模式（A1）。
@@ -15,7 +17,7 @@ enum BrowseMode { infinite, paged }
 
 class AppSettings {
   final String siteHost; // e621.net or e926.net
-  final ThemeMode themeMode;
+  final AppThemeVariant themeVariant;
   final int previewHeight;
   final int worksPerRow;
   final int pageSize;
@@ -26,10 +28,11 @@ class AppSettings {
   final bool showPreviewType;
   final bool showPreviewUpvote;
   final bool showPreviewScore;
+  final bool showPostCardDiagnostic;
 
   const AppSettings({
     this.siteHost = 'e621.net',
-    this.themeMode = ThemeMode.dark,
+    this.themeVariant = AppThemeVariant.e621,
     this.previewHeight = 150,
     this.worksPerRow = 4,
     this.pageSize = 40,
@@ -40,11 +43,12 @@ class AppSettings {
     this.showPreviewType = true,
     this.showPreviewUpvote = true,
     this.showPreviewScore = true,
+    this.showPostCardDiagnostic = false,
   });
 
   AppSettings copyWith({
     String? siteHost,
-    ThemeMode? themeMode,
+    AppThemeVariant? themeVariant,
     int? previewHeight,
     int? worksPerRow,
     int? pageSize,
@@ -55,10 +59,11 @@ class AppSettings {
     bool? showPreviewType,
     bool? showPreviewUpvote,
     bool? showPreviewScore,
+    bool? showPostCardDiagnostic,
   }) {
     return AppSettings(
       siteHost: siteHost ?? this.siteHost,
-      themeMode: themeMode ?? this.themeMode,
+      themeVariant: themeVariant ?? this.themeVariant,
       previewHeight: previewHeight ?? this.previewHeight,
       worksPerRow: worksPerRow ?? this.worksPerRow,
       pageSize: pageSize ?? this.pageSize,
@@ -69,6 +74,8 @@ class AppSettings {
       showPreviewType: showPreviewType ?? this.showPreviewType,
       showPreviewUpvote: showPreviewUpvote ?? this.showPreviewUpvote,
       showPreviewScore: showPreviewScore ?? this.showPreviewScore,
+      showPostCardDiagnostic:
+          showPostCardDiagnostic ?? this.showPostCardDiagnostic,
     );
   }
 }
@@ -80,17 +87,24 @@ class SettingsNotifier extends Notifier<AppSettings> {
 
     return AppSettings(
       siteHost: prefs.getString(PrefKeys.siteHost) ?? 'e621.net',
-      themeMode: ThemeMode.values[prefs.getInt(PrefKeys.themeMode) ?? ThemeMode.dark.index],
+      themeVariant:
+          AppThemeVariant.values[prefs.getInt(PrefKeys.themeVariant) ??
+              AppThemeVariant.e621.index],
       previewHeight: prefs.getInt(PrefKeys.previewHeight) ?? 150,
       worksPerRow: prefs.getInt(PrefKeys.worksPerRow) ?? 4,
       pageSize: prefs.getInt(PrefKeys.pageSize) ?? 40,
       enableBlacklist: prefs.getBool(PrefKeys.enableBlacklist) ?? true,
       blacklistedTags: prefs.getStringList(PrefKeys.blacklistedTags) ?? [],
-      layoutMode: LayoutMode.values[prefs.getInt(PrefKeys.layoutMode) ?? LayoutMode.masonry.index],
-      browseMode: BrowseMode.values[prefs.getInt(PrefKeys.browseMode) ?? BrowseMode.paged.index],
+      layoutMode:
+          LayoutMode.values[prefs.getInt(PrefKeys.layoutMode) ??
+              LayoutMode.masonry.index],
+      browseMode: BrowseMode
+          .values[prefs.getInt(PrefKeys.browseMode) ?? BrowseMode.paged.index],
       showPreviewType: prefs.getBool(PrefKeys.showPreviewType) ?? true,
       showPreviewUpvote: prefs.getBool(PrefKeys.showPreviewUpvote) ?? true,
       showPreviewScore: prefs.getBool(PrefKeys.showPreviewScore) ?? true,
+      showPostCardDiagnostic:
+          prefs.getBool(PrefKeys.showPostCardDiagnostic) ?? false,
     );
   }
 
@@ -101,9 +115,9 @@ class SettingsNotifier extends Notifier<AppSettings> {
     _p.setString(PrefKeys.siteHost, host);
   }
 
-  void updateThemeMode(ThemeMode mode) {
-    state = state.copyWith(themeMode: mode);
-    _p.setInt(PrefKeys.themeMode, mode.index);
+  void updateThemeVariant(AppThemeVariant variant) {
+    state = state.copyWith(themeVariant: variant);
+    _p.setInt(PrefKeys.themeVariant, variant.index);
   }
 
   void updatePreviewHeight(int height) {
@@ -149,6 +163,11 @@ class SettingsNotifier extends Notifier<AppSettings> {
   void updateShowPreviewScore(bool value) {
     state = state.copyWith(showPreviewScore: value);
     _p.setBool(PrefKeys.showPreviewScore, value);
+  }
+
+  void updateShowPostCardDiagnostic(bool value) {
+    state = state.copyWith(showPostCardDiagnostic: value);
+    _p.setBool(PrefKeys.showPostCardDiagnostic, value);
   }
 
   void addBlacklistTag(String tag) {

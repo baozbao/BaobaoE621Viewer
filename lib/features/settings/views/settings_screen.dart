@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../providers/settings_provider.dart';
 import '../../posts/providers/post_list_provider.dart';
+import '../../search/providers/search_history_provider.dart';
 import '../../../core/constants/strings.dart';
+import '../../../core/theme/app_theme.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -58,38 +60,64 @@ class SettingsScreen extends ConsumerWidget {
             onTap: () => context.push('/settings/history'),
           ),
 
+          // 清空搜索历史放这里而不是搜索下拉层里（PRD-028）：下拉层里它会紧挨
+          // 单条删除的 x，误触一次就抹掉 30 条且无法撤销。
+          Consumer(
+            builder: (context, ref, _) {
+              final count = ref.watch(searchHistoryProvider).length;
+              return ListTile(
+                leading: const Icon(Icons.manage_search),
+                title: const Text(Strings.clearSearchHistory),
+                subtitle: Text('$count 条记录'),
+                enabled: count > 0,
+                onTap: count > 0
+                    ? () => _confirmClearSearchHistory(context, ref)
+                    : null,
+              );
+            },
+          ),
+
           const Divider(),
           _sectionHeader(context, Strings.sectionDisplay),
 
-          // D1:补上主题切换入口（此前功能已实现但无 UI）。
+          // 主题切换：三套独立主题（E621 / 深色 / 浅色），默认 E621。
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-            child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(Icons.brightness_6, size: 22),
-                const SizedBox(width: 12),
-                const Text(Strings.appearance),
-                const Spacer(),
-                SegmentedButton<ThemeMode>(
-                  style: const ButtonStyle(
-                    visualDensity: VisualDensity.compact,
-                  ),
-                  segments: const [
-                    ButtonSegment(
-                      value: ThemeMode.system,
-                      label: Text(Strings.appearanceSystem),
-                    ),
-                    ButtonSegment(
-                      value: ThemeMode.light,
-                      label: Text(Strings.appearanceLight),
-                    ),
-                    ButtonSegment(
-                      value: ThemeMode.dark,
-                      label: Text(Strings.appearanceDark),
-                    ),
+                Row(
+                  children: const [
+                    Icon(Icons.brightness_6, size: 22),
+                    SizedBox(width: 12),
+                    Text(Strings.appearance),
                   ],
-                  selected: {settings.themeMode},
-                  onSelectionChanged: (s) => notifier.updateThemeMode(s.first),
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: SegmentedButton<AppThemeVariant>(
+                    style: const ButtonStyle(
+                      visualDensity: VisualDensity.compact,
+                    ),
+                    segments: const [
+                      ButtonSegment(
+                        value: AppThemeVariant.e621,
+                        label: Text(Strings.appearanceE621),
+                      ),
+                      ButtonSegment(
+                        value: AppThemeVariant.dark,
+                        label: Text(Strings.appearanceDark),
+                      ),
+                      ButtonSegment(
+                        value: AppThemeVariant.light,
+                        label: Text(Strings.appearanceLight),
+                      ),
+                    ],
+                    selected: {settings.themeVariant},
+                    onSelectionChanged: (s) =>
+                        notifier.updateThemeVariant(s.first),
+                  ),
                 ),
               ],
             ),
@@ -152,10 +180,7 @@ class SettingsScreen extends ConsumerWidget {
               spacing: 8,
               runSpacing: 4,
               children: const [
-                _ColoredSettingLabel(
-                  text: Strings.previewType,
-                  color: Colors.white,
-                ),
+                _ColoredSettingLabel(text: Strings.previewType),
                 _ColoredSettingLabel(
                   text: Strings.previewUpvote,
                   color: Color(0xFF35D08A),
@@ -170,10 +195,7 @@ class SettingsScreen extends ConsumerWidget {
           SwitchListTile(
             dense: true,
             secondary: const Icon(Icons.movie_filter_outlined),
-            title: const _ColoredSettingLabel(
-              text: Strings.previewType,
-              color: Colors.white,
-            ),
+            title: const _ColoredSettingLabel(text: Strings.previewType),
             value: settings.showPreviewType,
             onChanged: notifier.updateShowPreviewType,
           ),
@@ -201,6 +223,15 @@ class SettingsScreen extends ConsumerWidget {
           const Divider(),
           _sectionHeader(context, Strings.sectionDev),
 
+          SwitchListTile(
+            dense: true,
+            secondary: const Icon(Icons.bug_report),
+            title: const Text('卡片诊断模式'),
+            subtitle: const Text('开发者选项：卡片显示调试信息'),
+            value: settings.showPostCardDiagnostic,
+            onChanged: notifier.updateShowPostCardDiagnostic,
+          ),
+
           ListTile(
             leading: const Icon(Icons.bug_report),
             title: const Text(Strings.systemLogs),
@@ -213,17 +244,66 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 
+  /// 清空搜索历史需二次确认：一次点击抹掉全部记录且无法撤销。
+  void _confirmClearSearchHistory(BuildContext context, WidgetRef ref) {
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text(Strings.clearSearchHistory),
+        content: const Text(Strings.clearSearchHistoryConfirm),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text(Strings.cancel),
+          ),
+          TextButton(
+            onPressed: () {
+              ref.read(searchHistoryProvider.notifier).clearHistory();
+              Navigator.of(ctx).pop();
+              ScaffoldMessenger.of(context)
+                ..hideCurrentSnackBar()
+                ..showSnackBar(
+                  const SnackBar(
+                    content: Text(Strings.searchHistoryCleared),
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+            },
+            child: const Text(Strings.confirm),
+          ),
+        ],
+      ),
+    );
+  }
+
   // A8:分区标题用主题色，不再硬编码 Colors.blue。
   Widget _sectionHeader(BuildContext context, String text) {
+    final primary = Theme.of(context).colorScheme.primary;
+
     return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Text(
-        text,
-        style: TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.bold,
-          color: Theme.of(context).colorScheme.primary,
-        ),
+      padding: const EdgeInsets.fromLTRB(16, 18, 16, 8),
+      child: Row(
+        children: [
+          // 一道主色短条：比单纯加粗文字更能把长列表切分成段落。
+          Container(
+            width: 3,
+            height: 14,
+            decoration: BoxDecoration(
+              color: primary,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            text,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.6,
+              color: primary,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -289,15 +369,20 @@ class SettingsScreen extends ConsumerWidget {
 
 class _ColoredSettingLabel extends StatelessWidget {
   final String text;
-  final Color color;
 
-  const _ColoredSettingLabel({required this.text, required this.color});
+  /// null = 跟随主题文字色（浅色主题下白色会隐形，故类型标签传 null）。
+  final Color? color;
+
+  const _ColoredSettingLabel({required this.text, this.color});
 
   @override
   Widget build(BuildContext context) {
     return Text(
       text,
-      style: TextStyle(color: color, fontWeight: FontWeight.w600),
+      style: TextStyle(
+        color: color ?? Theme.of(context).colorScheme.onSurface,
+        fontWeight: FontWeight.w600,
+      ),
     );
   }
 }

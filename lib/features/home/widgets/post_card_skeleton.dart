@@ -37,10 +37,13 @@ class _PostCardSkeletonState extends State<PostCardSkeleton>
       animation: _controller,
       builder: (context, _) {
         final t = _controller.value; // 0..1
+        // 圆角跟 PostCard 保持一致，否则加载完成的瞬间会看到形状跳变。
+        // 同样不画描边：PostCard 取消了描边层，这里留着会让切换瞬间边框消失。
         return ClipRRect(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(10),
           child: DecoratedBox(
             decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(10),
               gradient: LinearGradient(
                 begin: Alignment(-1 - 2 * (1 - t), 0),
                 end: Alignment(1 - 2 * (1 - t), 0),

@@ -61,7 +61,10 @@ void main() {
       final e = DioException(
         requestOptions: RequestOptions(path: '/'),
         type: DioExceptionType.badResponse,
-        response: Response(requestOptions: RequestOptions(path: '/'), statusCode: 503),
+        response: Response(
+          requestOptions: RequestOptions(path: '/'),
+          statusCode: 503,
+        ),
       );
       expect(humanizeError(e), Strings.errorServer);
     });

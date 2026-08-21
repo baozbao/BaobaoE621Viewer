@@ -49,7 +49,8 @@ class FavoritesNotifier extends Notifier<List<E621Post>> {
   }
 }
 
-final favoritesProvider =
-    NotifierProvider<FavoritesNotifier, List<E621Post>>(() {
-  return FavoritesNotifier();
-});
+final favoritesProvider = NotifierProvider<FavoritesNotifier, List<E621Post>>(
+  () {
+    return FavoritesNotifier();
+  },
+);

@@ -25,9 +25,9 @@ class Strings {
   static const sortRandom = '随机';
   static const sortRank = '热度';
   static const ratingAll = '全部';
-  static const ratingSafe = 'S';
-  static const ratingQuestionable = 'Q';
-  static const ratingExplicit = 'E';
+  static const ratingSafe = '非色图';
+  static const ratingQuestionable = '可能是色图';
+  static const ratingExplicit = '色图！';
   static const jumpPageTitle = '跳转页码';
   static const jumpPageHint = '输入页码';
   static const jumpPageInvalid = '请输入有效的正整数';
@@ -43,6 +43,11 @@ class Strings {
   static const emptyResultHint = '换个标签试试，或检查黑名单是否过滤了全部结果';
   static const clearSearch = '清除搜索';
   static const noSearchHistory = '暂无搜索历史';
+  static const searchHistoryTitle = '搜索历史';
+  static const removeSearchHistoryItem = '删除这条记录';
+  static const clearSearchHistory = '清空搜索历史';
+  static const clearSearchHistoryConfirm = '确定清空全部搜索历史吗？此操作无法撤销。';
+  static const searchHistoryCleared = '已清空搜索历史';
 
   // 详情页
   static const detailTitle = '详情';
@@ -83,6 +88,7 @@ class Strings {
   static const appearanceSystem = '跟随系统';
   static const appearanceLight = '浅色';
   static const appearanceDark = '深色';
+  static const appearanceE621 = 'E621';
   static const contentSource = '内容源';
   static const contentSourceFull = 'e621.net（完整内容）';
   static const contentSourceSafe = 'e926.net（仅 Safe 内容）';

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import '../widgets/post_card.dart';
+import '../../../core/widgets/post_card_diagnostic.dart';
 import '../widgets/post_card_skeleton.dart';
 import '../widgets/search_bar_widget.dart';
 import '../../posts/providers/post_list_provider.dart';
@@ -68,11 +70,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               child: const Icon(Icons.arrow_upward),
             )
           : null,
-      bottomNavigationBar: isPaged ? _buildPaginationBar(postState, settings) : null,
+      bottomNavigationBar: isPaged
+          ? _buildPaginationBar(postState, settings)
+          : null,
       body: RefreshIndicator(
-        onRefresh: () => ref.read(postListProvider.notifier).loadPosts(isRefresh: true),
+        onRefresh: () =>
+            ref.read(postListProvider.notifier).loadPosts(isRefresh: true),
         child: CustomScrollView(
           controller: _scroll,
+          // 加大缓存范围，减少滑出屏幕的卡片被立即销毁，
+          // 从而缓解 HtmlElementView 在滚动列表里的 detached 断言刷屏。
+          scrollCacheExtent: ScrollCacheExtent.pixels(1000),
           slivers: [
             SliverAppBar(
               toolbarHeight: 40,
@@ -81,15 +89,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 textBaseline: TextBaseline.alphabetic,
                 children: [
                   const SizedBox(width: 4),
-                  const Text('E621 VIEWER',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  const Text(
+                    'E621 VIEWER',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
                   const SizedBox(width: 8),
-                  Text('By Baozbao',
-                      style: TextStyle(
-                        fontSize: 10,
-                        // A8:随主题走，不再硬编码白色。
-                        color: Theme.of(context).colorScheme.onSurface.withAlpha(150),
-                      )),
+                  Text(
+                    'By Baozbao',
+                    style: TextStyle(
+                      fontSize: 10,
+                      // A8:随主题走，不再硬编码白色。
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withAlpha(150),
+                    ),
+                  ),
                 ],
               ),
               centerTitle: false,
@@ -113,12 +127,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   child: Center(child: CircularProgressIndicator()),
                 ),
               ),
-            if (!isPaged && postState.hasReachedEnd && postState.posts.isNotEmpty)
+            if (!isPaged &&
+                postState.hasReachedEnd &&
+                postState.posts.isNotEmpty)
               const SliverToBoxAdapter(
                 child: Padding(
                   padding: EdgeInsets.symmetric(vertical: 20),
                   child: Center(
-                    child: Text('已到底部', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                    child: Text(
+                      '已到底部',
+                      style: TextStyle(color: Colors.grey, fontSize: 12),
+                    ),
                   ),
                 ),
               ),
@@ -130,22 +149,43 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   Widget _buildSortRow(PostListState postState) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8.0),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
+      padding: const EdgeInsets.fromLTRB(12, 6, 12, 2),
+      child: Center(
+        child: Wrap(
+          spacing: 6,
+          runSpacing: 6,
+          alignment: WrapAlignment.center,
+          crossAxisAlignment: WrapCrossAlignment.center,
           children: [
-            const Text(Strings.sortLabel, style: TextStyle(color: Colors.grey, fontSize: 12)),
-            const SizedBox(width: 8),
-            _SortChip(label: Strings.sortScore, sortParam: 'order:score', current: postState.currentSort),
-            const SizedBox(width: 4),
-            _SortChip(label: Strings.sortFav, sortParam: 'order:favcount', current: postState.currentSort),
-            const SizedBox(width: 4),
-            _SortChip(label: Strings.sortNewest, sortParam: 'order:id', current: postState.currentSort),
-            const SizedBox(width: 4),
-            _SortChip(label: Strings.sortRank, sortParam: 'order:rank', current: postState.currentSort),
-            const SizedBox(width: 4),
-            _SortChip(label: Strings.sortRandom, sortParam: 'order:random', current: postState.currentSort),
+            const Text(
+              Strings.sortLabel,
+              style: TextStyle(color: Colors.grey, fontSize: 12),
+            ),
+            _SortChip(
+              label: Strings.sortScore,
+              sortParam: 'order:score',
+              current: postState.currentSort,
+            ),
+            _SortChip(
+              label: Strings.sortFav,
+              sortParam: 'order:favcount',
+              current: postState.currentSort,
+            ),
+            _SortChip(
+              label: Strings.sortNewest,
+              sortParam: 'order:id',
+              current: postState.currentSort,
+            ),
+            _SortChip(
+              label: Strings.sortRank,
+              sortParam: 'order:rank',
+              current: postState.currentSort,
+            ),
+            _SortChip(
+              label: Strings.sortRandom,
+              sortParam: 'order:random',
+              current: postState.currentSort,
+            ),
           ],
         ),
       ),
@@ -158,35 +198,39 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     Widget chip(String label, RatingFilter? r) {
       final isAll = r == null;
       final on = isAll ? selected.isEmpty : selected.contains(r);
-      final color = r == null ? null : PostFormat.ratingColor(r.tag.split(':').last);
-      return Padding(
-        padding: const EdgeInsets.only(right: 4),
-        child: FilterChip(
-          label: Text(label, style: const TextStyle(fontSize: 12)),
-          selected: on,
-          visualDensity: VisualDensity.compact,
-          selectedColor: color?.withAlpha(60),
-          checkmarkColor: color,
-          onSelected: (_) {
-            final notifier = ref.read(postListProvider.notifier);
-            if (isAll) {
-              notifier.clearRatingFilters();
-            } else {
-              notifier.toggleRating(r);
-            }
-          },
-        ),
+      final color = r == null
+          ? null
+          : PostFormat.ratingColor(r.tag.split(':').last);
+      return FilterChip(
+        label: Text(label, style: const TextStyle(fontSize: 12)),
+        selected: on,
+        visualDensity: VisualDensity.compact,
+        selectedColor: color?.withAlpha(60),
+        checkmarkColor: color,
+        onSelected: (_) {
+          final notifier = ref.read(postListProvider.notifier);
+          if (isAll) {
+            notifier.clearRatingFilters();
+          } else {
+            notifier.toggleRating(r);
+          }
+        },
       );
     }
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8.0),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
+      padding: const EdgeInsets.fromLTRB(12, 2, 12, 4),
+      child: Center(
+        child: Wrap(
+          spacing: 6,
+          runSpacing: 6,
+          alignment: WrapAlignment.center,
+          crossAxisAlignment: WrapCrossAlignment.center,
           children: [
-            const Text(Strings.ratingLabel, style: TextStyle(color: Colors.grey, fontSize: 12)),
-            const SizedBox(width: 8),
+            const Text(
+              Strings.ratingLabel,
+              style: TextStyle(color: Colors.grey, fontSize: 12),
+            ),
             chip(Strings.ratingAll, null),
             chip(Strings.ratingSafe, RatingFilter.safe),
             chip(Strings.ratingQuestionable, RatingFilter.questionable),
@@ -225,7 +269,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           icon: Icons.cloud_off,
           title: postState.error!,
           actionLabel: Strings.retry,
-          onAction: () => ref.read(postListProvider.notifier).loadPosts(isRefresh: true),
+          onAction: () =>
+              ref.read(postListProvider.notifier).loadPosts(isRefresh: true),
         ),
       );
     }
@@ -246,6 +291,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     // 内容网格：瀑布流（A1）或等高网格。
     final masonry = settings.layoutMode == LayoutMode.masonry;
+    Widget buildCard(int index, {bool fixedHeight = true}) {
+      if (settings.showPostCardDiagnostic) {
+        return PostCardDiagnostic(post: postState.posts[index], index: index);
+      }
+      return PostCard(
+        post: postState.posts[index],
+        index: index,
+        fixedHeight: fixedHeight,
+      );
+    }
+
     return SliverPadding(
       padding: const EdgeInsets.all(8),
       sliver: masonry
@@ -254,11 +310,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               mainAxisSpacing: 8,
               crossAxisSpacing: 8,
               childCount: postState.posts.length,
-              itemBuilder: (context, index) => PostCard(
-                post: postState.posts[index],
-                index: index,
-                fixedHeight: false,
-              ),
+              itemBuilder: (context, index) =>
+                  buildCard(index, fixedHeight: false),
             )
           : SliverGrid(
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
@@ -268,11 +321,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 childAspectRatio: 100 / settings.previewHeight,
               ),
               delegate: SliverChildBuilderDelegate(
-                (context, index) => PostCard(
-                  post: postState.posts[index],
-                  index: index,
-                  fixedHeight: true,
-                ),
+                (context, index) => buildCard(index, fixedHeight: true),
                 childCount: postState.posts.length,
               ),
             ),
@@ -280,9 +329,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   Widget _buildPaginationBar(PostListState postState, AppSettings settings) {
-    if (postState.posts.isEmpty && postState.page <= 1) return const SizedBox.shrink();
+    if (postState.posts.isEmpty && postState.page <= 1)
+      return const SizedBox.shrink();
     final canPrev = postState.page > 1 && !postState.isLoading;
-    final canNext = !postState.isLoading &&
+    final canNext =
+        !postState.isLoading &&
         postState.posts.length >= settings.pageSize &&
         !(postState.totalPages > 0 && postState.page >= postState.totalPages);
 
@@ -292,45 +343,56 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       child: Padding(
         padding: const EdgeInsets.all(8),
         child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              visualDensity: VisualDensity.compact,
-              padding: const EdgeInsets.symmetric(horizontal: 12),
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                visualDensity: VisualDensity.compact,
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+              ),
+              onPressed: canPrev
+                  ? () => ref
+                        .read(postListProvider.notifier)
+                        .loadPosts(targetPage: postState.page - 1)
+                  : null,
+              child: const Text('<'),
             ),
-            onPressed: canPrev
-                ? () => ref.read(postListProvider.notifier).loadPosts(targetPage: postState.page - 1)
-                : null,
-            child: const Text('<'),
-          ),
-          const SizedBox(width: 16),
-          InkWell(
-            onTap: postState.isLoading ? null : () => _showJumpDialog(postState),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-              child: Text(
-                postState.totalPages > 0
-                    ? 'Page ${postState.page} / ${postState.totalPages}'
-                    : 'Page ${postState.page}',
-                style: const TextStyle(
-                    fontWeight: FontWeight.bold, decoration: TextDecoration.underline),
+            const SizedBox(width: 16),
+            InkWell(
+              onTap: postState.isLoading
+                  ? null
+                  : () => _showJumpDialog(postState),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16.0,
+                  vertical: 8.0,
+                ),
+                child: Text(
+                  postState.totalPages > 0
+                      ? 'Page ${postState.page} / ${postState.totalPages}'
+                      : 'Page ${postState.page}',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    decoration: TextDecoration.underline,
+                  ),
+                ),
               ),
             ),
-          ),
-          const SizedBox(width: 16),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              visualDensity: VisualDensity.compact,
-              padding: const EdgeInsets.symmetric(horizontal: 12),
+            const SizedBox(width: 16),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                visualDensity: VisualDensity.compact,
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+              ),
+              onPressed: canNext
+                  ? () => ref
+                        .read(postListProvider.notifier)
+                        .loadPosts(targetPage: postState.page + 1)
+                  : null,
+              child: const Text('>'),
             ),
-            onPressed: canNext
-                ? () => ref.read(postListProvider.notifier).loadPosts(targetPage: postState.page + 1)
-                : null,
-            child: const Text('>'),
-          ),
-        ],
-      ),
+          ],
+        ),
       ),
     );
   }
@@ -343,7 +405,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       builder: (context) => _JumpPageDialog(
         currentPage: postState.page,
         maxPage: maxPage,
-        onJump: (page) => ref.read(postListProvider.notifier).loadPosts(targetPage: page),
+        onJump: (page) =>
+            ref.read(postListProvider.notifier).loadPosts(targetPage: page),
       ),
     );
   }
@@ -354,18 +417,27 @@ class _SortChip extends ConsumerWidget {
   final String sortParam;
   final String current;
 
-  const _SortChip({required this.label, required this.sortParam, required this.current});
+  const _SortChip({
+    required this.label,
+    required this.sortParam,
+    required this.current,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return ChoiceChip(
       label: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 8.0),
-        child: Text(label, style: const TextStyle(fontSize: 12), maxLines: 1, softWrap: false),
+        child: Text(
+          label,
+          style: const TextStyle(fontSize: 12),
+          maxLines: 1,
+          softWrap: false,
+        ),
       ),
       selected: current == sortParam,
-      padding: EdgeInsets.zero,
-      labelPadding: EdgeInsets.zero,
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+      labelPadding: const EdgeInsets.symmetric(horizontal: 4),
       visualDensity: VisualDensity.compact,
       onSelected: (selected) {
         if (selected) ref.read(postListProvider.notifier).setSort(sortParam);
@@ -440,7 +512,10 @@ class _JumpPageDialogState extends State<_JumpPageDialog> {
         onSubmitted: (_) => _submit(),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text(Strings.cancel)),
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text(Strings.cancel),
+        ),
         ElevatedButton(onPressed: _submit, child: const Text(Strings.jump)),
       ],
     );

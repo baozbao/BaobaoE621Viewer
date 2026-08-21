@@ -15,30 +15,28 @@ class TagGroupSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // 分组色随主题走：浅色主题下用加深版本，否则浅彩色在白底上对比不足、看不清。
+    final light = Theme.of(context).brightness == Brightness.light;
+    final artist = light ? const Color(0xFFB56A00) : const Color(0xFFFFB85C);
+    final character = light ? const Color(0xFF7B3FBF) : const Color(0xFFC792EA);
+    final species = light ? const Color(0xFF2B5FB0) : const Color(0xFF82AAFF);
+    final copyright = light ? const Color(0xFF1E8A57) : const Color(0xFF7EE2A8);
+    final meta = light ? const Color(0xFF5C6570) : Colors.grey;
+
     // 画师置顶，其后按 e621 惯例排序。
     final groups = <_TagGroup>[
-      _TagGroup(
-        Strings.tagArtist,
-        tags.artist,
-        const Color(0xFFFFB85C),
-        Icons.brush_outlined,
-      ),
+      _TagGroup(Strings.tagArtist, tags.artist, artist, Icons.brush_outlined),
       _TagGroup(
         Strings.tagCharacter,
         tags.character,
-        const Color(0xFFC792EA),
+        character,
         Icons.person_outline,
       ),
-      _TagGroup(
-        Strings.tagSpecies,
-        tags.species,
-        const Color(0xFF82AAFF),
-        Icons.pets_outlined,
-      ),
+      _TagGroup(Strings.tagSpecies, tags.species, species, Icons.pets_outlined),
       _TagGroup(
         Strings.tagCopyright,
         tags.copyright,
-        const Color(0xFF7EE2A8),
+        copyright,
         Icons.copyright_outlined,
       ),
       _TagGroup(
@@ -47,7 +45,7 @@ class TagGroupSection extends ConsumerWidget {
         Theme.of(context).colorScheme.onSurface,
         Icons.sell_outlined,
       ),
-      _TagGroup(Strings.tagMeta, tags.meta, Colors.grey, Icons.info_outline),
+      _TagGroup(Strings.tagMeta, tags.meta, meta, Icons.info_outline),
     ].where((g) => g.tags.isNotEmpty).toList();
 
     return Padding(

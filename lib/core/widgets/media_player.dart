@@ -73,7 +73,7 @@ class _MediaPlayerState extends State<MediaPlayer> {
           );
         },
       );
-      
+
       if (mounted) {
         setState(() {});
       }
@@ -116,19 +116,16 @@ class _MediaPlayerState extends State<MediaPlayer> {
       );
     }
 
-    if (_chewieController != null && _chewieController!.videoPlayerController.value.isInitialized) {
+    if (_chewieController != null &&
+        _chewieController!.videoPlayerController.value.isInitialized) {
       return Container(
         color: Colors.black,
-        child: Chewie(
-          controller: _chewieController!,
-        ),
+        child: Chewie(controller: _chewieController!),
       );
     } else {
       return Container(
         color: Colors.black,
-        child: const Center(
-          child: CircularProgressIndicator(),
-        ),
+        child: const Center(child: CircularProgressIndicator()),
       );
     }
   }

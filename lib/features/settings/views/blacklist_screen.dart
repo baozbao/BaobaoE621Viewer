@@ -45,7 +45,9 @@ class _BlacklistScreenState extends ConsumerState<BlacklistScreen> {
             autofocus: true,
             minLines: 1,
             maxLines: 3,
-            decoration: const InputDecoration(hintText: Strings.blacklistAddHint),
+            decoration: const InputDecoration(
+              hintText: Strings.blacklistAddHint,
+            ),
           ),
           actions: [
             TextButton(
@@ -72,10 +74,12 @@ class _BlacklistScreenState extends ConsumerState<BlacklistScreen> {
     ref.read(settingsProvider.notifier).addBlacklistTags(_preset);
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
-      ..showSnackBar(const SnackBar(
-        content: Text(Strings.blacklistPresetImported),
-        duration: Duration(seconds: 1),
-      ));
+      ..showSnackBar(
+        const SnackBar(
+          content: Text(Strings.blacklistPresetImported),
+          duration: Duration(seconds: 1),
+        ),
+      );
   }
 
   @override
@@ -108,8 +112,9 @@ class _BlacklistScreenState extends ConsumerState<BlacklistScreen> {
                 children: tags.map((tag) {
                   return Chip(
                     label: Text(tag),
-                    onDeleted: () =>
-                        ref.read(settingsProvider.notifier).removeBlacklistTag(tag),
+                    onDeleted: () => ref
+                        .read(settingsProvider.notifier)
+                        .removeBlacklistTag(tag),
                     deleteIcon: const Icon(Icons.close, size: 18),
                   );
                 }).toList(),

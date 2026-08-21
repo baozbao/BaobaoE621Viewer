@@ -1,7 +1,7 @@
 /// SharedPreferences 键集中管理，避免魔法字符串拼写错误。
 class PrefKeys {
   static const siteHost = 'siteHost';
-  static const themeMode = 'themeMode';
+  static const themeVariant = 'themeVariant';
   static const previewHeight = 'previewHeight';
   static const worksPerRow = 'worksPerRow';
   static const pageSize = 'pageSize';
@@ -17,4 +17,5 @@ class PrefKeys {
   static const showPreviewType = 'show_preview_type';
   static const showPreviewUpvote = 'show_preview_upvote';
   static const showPreviewScore = 'show_preview_score';
+  static const showPostCardDiagnostic = 'show_post_card_diagnostic';
 }

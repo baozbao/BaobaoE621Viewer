@@ -40,7 +40,10 @@ class FavoritesScreen extends ConsumerWidget {
                 fixedHeight: true,
                 onTap: () => context.push(
                   '/post',
-                  extra: PostDetailArgs(index: index, source: PostDetailSource.favorites),
+                  extra: PostDetailArgs(
+                    index: index,
+                    source: PostDetailSource.favorites,
+                  ),
                 ),
               ),
             ),

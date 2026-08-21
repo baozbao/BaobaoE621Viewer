@@ -66,6 +66,24 @@ class PostListState {
       hasReachedEnd: hasReachedEnd ?? this.hasReachedEnd,
     );
   }
+
+  /// 搜索框展示串：用户标签 + 当前排序 + 评级过滤（去重、保持顺序）。
+  String get displayTags {
+    final parts = <String>[];
+    void add(String s) {
+      final t = s.trim();
+      if (t.isNotEmpty && !parts.contains(t)) parts.add(t);
+    }
+
+    for (final t in currentTags.split(' ')) {
+      add(t);
+    }
+    add(currentSort);
+    for (final r in ratingFilters) {
+      add(r.tag);
+    }
+    return parts.join(' ');
+  }
 }
 
 class PostListNotifier extends Notifier<PostListState> {
@@ -103,7 +121,11 @@ class PostListNotifier extends Notifier<PostListState> {
         queryTags.add('-$tag');
       }
     }
-    return queryTags.join(' ');
+    // 去重（保序）：防止用户标签里已经带了 order:/rating: 等条件时，
+    // 与显式追加的排序/评级重复。
+    final seen = <String>{};
+    final unique = queryTags.where(seen.add).toList();
+    return unique.join(' ');
   }
 
   Future<void> loadPosts({bool isRefresh = false, int? targetPage}) async {
@@ -207,8 +229,24 @@ class PostListNotifier extends Notifier<PostListState> {
   }
 
   void search(String tags) {
+    // 排序 / 评级由 chips 单独维护（currentSort / ratingFilters）。
+    // 提交文本里若混入了 order:*/rating:*，这里剥掉，只把纯用户标签写进
+    // currentTags，避免和 _buildTags 里显式追加的条件重复。
+    final userTags = tags
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((s) => s.isNotEmpty)
+        .where(
+          (s) =>
+              !s.startsWith('order:') &&
+              s != RatingFilter.safe.tag &&
+              s != RatingFilter.questionable.tag &&
+              s != RatingFilter.explicit.tag,
+        )
+        .join(' ');
+
     state = state.copyWith(
-      currentTags: tags,
+      currentTags: userTags,
       totalPages: 0,
       hasReachedEnd: false,
     );
