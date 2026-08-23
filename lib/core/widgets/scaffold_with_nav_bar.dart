@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../constants/strings.dart';
 import '../theme/app_theme.dart';
+import 'filter_menu_open.dart';
 
-/// 底部一级导航容器（E1）。承载 浏览 / 热门 / 收藏 / 设置 四个 tab，
+/// 底部一级导航容器（E1）。承载 浏览 / 下载 / 热门 / 收藏 / 设置 五个 tab，
 /// 每个 tab 有独立导航栈，切换不丢状态（由 StatefulShellRoute.indexedStack 提供）。
 class ScaffoldWithNavBar extends StatelessWidget {
   final StatefulNavigationShell navigationShell;
@@ -12,7 +13,7 @@ class ScaffoldWithNavBar extends StatelessWidget {
 
   /// 设置分支的下标。设置是配置入口，不是浏览流，没有"上次看到哪"值得保留，
   /// 停在上次的子页（日志/黑名单/预览…）反而让人不知道自己在哪一层。
-  static const settingsBranch = 3;
+  static const settingsBranch = 4;
 
   /// 点 [target] 时是否重置该分支到根路由（当前在 [current]）。
   /// 重复点当前 tab 回根是常规行为；设置 tab 每次进入都回根。
@@ -20,6 +21,9 @@ class ScaffoldWithNavBar extends StatelessWidget {
       target == current || target == settingsBranch;
 
   void _onTap(int index) {
+    // 切换 tab 前关闭所有打开的下拉筛选菜单，
+    // 否则菜单浮层和滚动锁会跨页面残留。
+    closeAllFilterMenus();
     navigationShell.goBranch(
       index,
       initialLocation: shouldResetBranch(index, navigationShell.currentIndex),
@@ -60,6 +64,11 @@ class ScaffoldWithNavBar extends StatelessWidget {
               icon: Icon(Icons.photo_library_outlined),
               selectedIcon: Icon(Icons.photo_library),
               label: Strings.browse,
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.download_outlined),
+              selectedIcon: Icon(Icons.download),
+              label: Strings.downloadTab,
             ),
             NavigationDestination(
               icon: Icon(Icons.local_fire_department_outlined),

@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../features/home/views/home_screen.dart';
+import '../../features/download/views/download_screen.dart';
 import '../../features/popular/views/popular_screen.dart';
 import '../../features/favorites/views/favorites_screen.dart';
 import '../../features/settings/views/settings_screen.dart';
+import '../../features/settings/views/download_grid_settings_screen.dart';
 import '../../features/settings/views/preview_settings_screen.dart';
 import '../../features/settings/views/logs_screen.dart';
 import '../../features/settings/views/blacklist_screen.dart';
@@ -19,7 +21,7 @@ final routerProvider = Provider<GoRouter>((ref) {
     navigatorKey: _rootNavigatorKey,
     initialLocation: '/browse',
     routes: [
-      // 一级导航壳：4 个 tab 各自独立导航栈（E1）。
+      // 一级导航壳：5 个 tab 各自独立导航栈（E1）。
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) =>
             ScaffoldWithNavBar(navigationShell: navigationShell),
@@ -29,6 +31,14 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: '/browse',
                 builder: (context, state) => const HomeScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/download',
+                builder: (context, state) => const DownloadScreen(),
               ),
             ],
           ),
@@ -69,6 +79,11 @@ final routerProvider = Provider<GoRouter>((ref) {
                   GoRoute(
                     path: 'history',
                     builder: (context, state) => const HistoryScreen(),
+                  ),
+                  GoRoute(
+                    path: 'download-grid',
+                    builder: (context, state) =>
+                        const DownloadGridSettingsScreen(),
                   ),
                 ],
               ),

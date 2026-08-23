@@ -18,7 +18,16 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
-        child: const MaterialApp(home: Scaffold(body: SearchBarWidget())),
+        child: MaterialApp(
+          home: Scaffold(
+            body: SearchBarWidget<PostListState>(
+              stateProvider: postListProvider,
+              displayTagsOf: (s) => s.displayTags,
+              onSearch: (ref, q) =>
+                  ref.read(postListProvider.notifier).search(q),
+            ),
+          ),
+        ),
       ),
     );
     await tester.pumpAndSettle();
@@ -29,11 +38,11 @@ void main() {
 
     final field = find.byType(TextField).first;
 
-    // 初始应显示 provider 里生效的标签。
+    // 初始应显示 provider 里生效的标签（含默认排序）。
     expect(
       tester.widget<TextField>(field).controller?.text,
-      'female',
-      reason: '初始输入框应反映 currentTags',
+      'female order:score',
+      reason: '初始输入框应反映 displayTags',
     );
 
     // 模拟冒烟测试：清空后提交空串。
@@ -44,8 +53,54 @@ void main() {
     // 修复前这里是空串，导致之后每次提交都被拦掉、界面刷不出来。
     expect(
       tester.widget<TextField>(field).controller?.text,
-      'female',
-      reason: '空提交被拒后应回填 currentTags，保持 UI 与 provider 同步',
+      'female order:score',
+      reason: '空提交被拒后应回填 displayTags，保持 UI 与 provider 同步',
+    );
+  });
+
+  testWidgets('点击 X 清除按钮会真正清空搜索条件并刷新', (tester) async {
+    late ProviderContainer container;
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+        child: Consumer(
+          builder: (context, ref, _) {
+            container = ProviderScope.containerOf(context);
+            return MaterialApp(
+              home: Scaffold(
+                body: SearchBarWidget<PostListState>(
+                  stateProvider: postListProvider,
+                  displayTagsOf: (s) => s.displayTags,
+                  onSearch: (ref, q) =>
+                      ref.read(postListProvider.notifier).search(q),
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // 模拟从详情页加 tag 后回到主页：provider 里已有 FNAF。
+    container.read(postListProvider.notifier).search('fnaf');
+    await tester.pumpAndSettle();
+
+    expect(
+      container.read(postListProvider).currentTags,
+      'fnaf',
+      reason: '前置：搜索条件应为 fnaf',
+    );
+
+    // 点 X。
+    await tester.tap(find.byIcon(Icons.clear));
+    await tester.pumpAndSettle();
+
+    expect(
+      container.read(postListProvider).currentTags,
+      '',
+      reason: '点 X 后实际请求的 tag 应被清空',
     );
   });
 
@@ -58,7 +113,16 @@ void main() {
         child: Consumer(
           builder: (context, ref, _) {
             container = ProviderScope.containerOf(context);
-            return const MaterialApp(home: Scaffold(body: SearchBarWidget()));
+            return MaterialApp(
+              home: Scaffold(
+                body: SearchBarWidget<PostListState>(
+                  stateProvider: postListProvider,
+                  displayTagsOf: (s) => s.displayTags,
+                  onSearch: (ref, q) =>
+                      ref.read(postListProvider.notifier).search(q),
+                ),
+              ),
+            );
           },
         ),
       ),

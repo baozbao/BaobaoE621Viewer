@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../features/posts/models/e621_post.dart';
@@ -33,11 +32,13 @@ class PostCardDiagnostic extends ConsumerWidget {
       'showType=${settings.showPreviewType} '
       'showUp=${settings.showPreviewUpvote} '
       'showScore=${settings.showPreviewScore} '
-      '=> showBottomBar=$showBottomBar'
+      '=> showBottomBar=$showBottomBar',
     );
 
     return Container(
-      color: showBottomBar ? Colors.green.withAlpha(50) : Colors.red.withAlpha(50),
+      color: showBottomBar
+          ? Colors.green.withAlpha(50)
+          : Colors.red.withAlpha(50),
       child: Center(
         child: Text(
           'Post ${post.id}\n'

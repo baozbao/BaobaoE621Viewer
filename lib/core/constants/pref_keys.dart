@@ -18,4 +18,9 @@ class PrefKeys {
   static const showPreviewUpvote = 'show_preview_upvote';
   static const showPreviewScore = 'show_preview_score';
   static const showPostCardDiagnostic = 'show_post_card_diagnostic';
+  static const batchWebmToMp4 = 'batch_webm_to_mp4';
+  static const downloadPreviewHeight = 'download_preview_height';
+  static const downloadWorksPerRow = 'download_works_per_row';
+  static const downloadPageSize = 'download_page_size';
+  static const autoSearchOnTagReturn = 'auto_search_on_tag_return';
 }

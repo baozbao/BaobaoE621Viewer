@@ -108,20 +108,34 @@ class _TagChip extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // 暂选状态：与下拉框一致的主题高亮（彩色淡底 + 加粗，不打勾）。
+    final pending = ref.watch(postListProvider).pendingTags;
+    final selected = pending.contains(tag);
+    final light = Theme.of(context).brightness == Brightness.light;
+
     return GestureDetector(
       onTap: () {
-        // 点击 = 以此单标签搜索，并返回首页。
-        ref.read(postListProvider.notifier).search(tag);
-        Navigator.of(context).popUntil((r) => r.isFirst);
+        // 点击 = 暂选/取消暂选，不返回主页、不立即搜索（可连续多选）。
+        ref.read(postListProvider.notifier).togglePendingTag(tag);
       },
       onLongPress: () => _showMenu(context, ref),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: color.withAlpha(120)),
+          border: Border.all(color: color.withAlpha(selected ? 200 : 120)),
+          color: selected
+              ? color.withAlpha(light ? 46 : 58)
+              : Colors.transparent,
         ),
-        child: Text(tag, style: TextStyle(color: color, fontSize: 14)),
+        child: Text(
+          tag,
+          style: TextStyle(
+            color: color,
+            fontSize: 14,
+            fontWeight: selected ? FontWeight.w700 : FontWeight.w400,
+          ),
+        ),
       ),
     );
   }
@@ -145,29 +159,11 @@ class _TagChip extends ConsumerWidget {
             ),
             const Divider(height: 1),
             ListTile(
-              leading: const Icon(Icons.search),
-              title: const Text(Strings.searchThisTag),
+              leading: const Icon(Icons.checklist),
+              title: const Text(Strings.selectTag),
               onTap: () {
                 Navigator.of(ctx).pop();
-                ref.read(postListProvider.notifier).search(tag);
-                Navigator.of(context).popUntil((r) => r.isFirst);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.add),
-              title: const Text(Strings.appendToSearch),
-              onTap: () {
-                Navigator.of(ctx).pop();
-                final current = ref.read(postListProvider).currentTags.trim();
-                final parts = current
-                    .split(' ')
-                    .where((s) => s.isNotEmpty)
-                    .toList();
-                if (!parts.contains(tag)) {
-                  final next = current.isEmpty ? tag : '$current $tag';
-                  ref.read(postListProvider.notifier).search(next);
-                }
-                Navigator.of(context).popUntil((r) => r.isFirst);
+                ref.read(postListProvider.notifier).togglePendingTag(tag);
               },
             ),
             ListTile(

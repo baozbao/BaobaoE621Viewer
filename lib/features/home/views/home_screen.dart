@@ -3,14 +3,15 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import '../widgets/post_card.dart';
+import '../widgets/search_filter_rows.dart';
 import '../../../core/widgets/post_card_diagnostic.dart';
 import '../widgets/post_card_skeleton.dart';
 import '../widgets/search_bar_widget.dart';
 import '../../posts/providers/post_list_provider.dart';
 import '../../settings/providers/settings_provider.dart';
 import '../../../core/constants/strings.dart';
-import '../../../core/utils/post_format.dart';
 import '../../../core/widgets/empty_state_view.dart';
+import '../../../core/widgets/filter_menu_open.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -76,166 +77,97 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       body: RefreshIndicator(
         onRefresh: () =>
             ref.read(postListProvider.notifier).loadPosts(isRefresh: true),
-        child: CustomScrollView(
-          controller: _scroll,
-          // 加大缓存范围，减少滑出屏幕的卡片被立即销毁，
-          // 从而缓解 HtmlElementView 在滚动列表里的 detached 断言刷屏。
-          scrollCacheExtent: ScrollCacheExtent.pixels(1000),
-          slivers: [
-            SliverAppBar(
-              toolbarHeight: 40,
-              title: Row(
-                crossAxisAlignment: CrossAxisAlignment.baseline,
-                textBaseline: TextBaseline.alphabetic,
-                children: [
-                  const SizedBox(width: 4),
-                  const Text(
-                    'E621 VIEWER',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'By Baozbao',
-                    style: TextStyle(
-                      fontSize: 10,
-                      // A8:随主题走，不再硬编码白色。
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.onSurface.withAlpha(150),
+        child: ValueListenableBuilder<List<Rect>>(
+          valueListenable: filterMenuRects,
+          builder: (context, menuRects, _) => CustomScrollView(
+            controller: _scroll,
+            // 下拉筛选菜单打开时锁定滚动：避免图片滚进菜单区域重新盖住浮层。
+            physics: menuRects.isEmpty
+                ? null
+                : const NeverScrollableScrollPhysics(),
+            // 加大缓存范围，减少滑出屏幕的卡片被立即销毁，
+            // 从而缓解 HtmlElementView 在滚动列表里的 detached 断言刷屏。
+            scrollCacheExtent: ScrollCacheExtent.pixels(1000),
+            slivers: [
+              SliverAppBar(
+                toolbarHeight: 40,
+                title: Row(
+                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                  textBaseline: TextBaseline.alphabetic,
+                  children: [
+                    const SizedBox(width: 4),
+                    const Text(
+                      'E621 VIEWER',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  ),
-                ],
+                    const SizedBox(width: 8),
+                    Text(
+                      'By Baozbao',
+                      style: TextStyle(
+                        fontSize: 10,
+                        // A8:随主题走，不再硬编码白色。
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withAlpha(150),
+                      ),
+                    ),
+                  ],
+                ),
+                centerTitle: false,
+                floating: true,
               ),
-              centerTitle: false,
-              floating: true,
-            ),
-            SliverToBoxAdapter(
-              child: Column(
-                children: [
-                  const SearchBarWidget(),
-                  _buildSortRow(postState),
-                  _buildRatingRow(postState),
-                ],
-              ),
-            ),
-            _buildContent(postState, settings),
-            // 无限滚动底部加载指示（A3）。
-            if (!isPaged && postState.isLoadingMore)
-              const SliverToBoxAdapter(
-                child: Padding(
-                  padding: EdgeInsets.symmetric(vertical: 20),
-                  child: Center(child: CircularProgressIndicator()),
+              SliverToBoxAdapter(
+                child: Column(
+                  children: [
+                    SearchBarWidget<PostListState>(
+                      stateProvider: postListProvider,
+                      displayTagsOf: (s) => s.displayTags,
+                      onSearch: (ref, q) =>
+                          ref.read(postListProvider.notifier).search(q),
+                    ),
+                    BrowseFilterRow(
+                      currentSort: postState.currentSort,
+                      onSelectSort: (p) =>
+                          ref.read(postListProvider.notifier).setSort(p),
+                      ratingFilters: postState.ratingFilters,
+                      onToggleRating: (r) =>
+                          ref.read(postListProvider.notifier).toggleRating(r),
+                      onClearRating: () => ref
+                          .read(postListProvider.notifier)
+                          .clearRatingFilters(),
+                      variant: settings.themeVariant,
+                    ),
+                  ],
                 ),
               ),
-            if (!isPaged &&
-                postState.hasReachedEnd &&
-                postState.posts.isNotEmpty)
-              const SliverToBoxAdapter(
-                child: Padding(
-                  padding: EdgeInsets.symmetric(vertical: 20),
-                  child: Center(
-                    child: Text(
-                      '已到底部',
-                      style: TextStyle(color: Colors.grey, fontSize: 12),
+              _buildContent(postState, settings),
+              // 无限滚动底部加载指示（A3）。
+              if (!isPaged && postState.isLoadingMore)
+                const SliverToBoxAdapter(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(vertical: 20),
+                    child: Center(child: CircularProgressIndicator()),
+                  ),
+                ),
+              if (!isPaged &&
+                  postState.hasReachedEnd &&
+                  postState.posts.isNotEmpty)
+                const SliverToBoxAdapter(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(vertical: 20),
+                    child: Center(
+                      child: Text(
+                        '已到底部',
+                        style: TextStyle(color: Colors.grey, fontSize: 12),
+                      ),
                     ),
                   ),
                 ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSortRow(PostListState postState) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 6, 12, 2),
-      child: Center(
-        child: Wrap(
-          spacing: 6,
-          runSpacing: 6,
-          alignment: WrapAlignment.center,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: [
-            const Text(
-              Strings.sortLabel,
-              style: TextStyle(color: Colors.grey, fontSize: 12),
-            ),
-            _SortChip(
-              label: Strings.sortScore,
-              sortParam: 'order:score',
-              current: postState.currentSort,
-            ),
-            _SortChip(
-              label: Strings.sortFav,
-              sortParam: 'order:favcount',
-              current: postState.currentSort,
-            ),
-            _SortChip(
-              label: Strings.sortNewest,
-              sortParam: 'order:id',
-              current: postState.currentSort,
-            ),
-            _SortChip(
-              label: Strings.sortRank,
-              sortParam: 'order:rank',
-              current: postState.currentSort,
-            ),
-            _SortChip(
-              label: Strings.sortRandom,
-              sortParam: 'order:random',
-              current: postState.currentSort,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // 评级过滤 chips（A7）。
-  Widget _buildRatingRow(PostListState postState) {
-    final selected = postState.ratingFilters;
-    Widget chip(String label, RatingFilter? r) {
-      final isAll = r == null;
-      final on = isAll ? selected.isEmpty : selected.contains(r);
-      final color = r == null
-          ? null
-          : PostFormat.ratingColor(r.tag.split(':').last);
-      return FilterChip(
-        label: Text(label, style: const TextStyle(fontSize: 12)),
-        selected: on,
-        visualDensity: VisualDensity.compact,
-        selectedColor: color?.withAlpha(60),
-        checkmarkColor: color,
-        onSelected: (_) {
-          final notifier = ref.read(postListProvider.notifier);
-          if (isAll) {
-            notifier.clearRatingFilters();
-          } else {
-            notifier.toggleRating(r);
-          }
-        },
-      );
-    }
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 2, 12, 4),
-      child: Center(
-        child: Wrap(
-          spacing: 6,
-          runSpacing: 6,
-          alignment: WrapAlignment.center,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: [
-            const Text(
-              Strings.ratingLabel,
-              style: TextStyle(color: Colors.grey, fontSize: 12),
-            ),
-            chip(Strings.ratingAll, null),
-            chip(Strings.ratingSafe, RatingFilter.safe),
-            chip(Strings.ratingQuestionable, RatingFilter.questionable),
-            chip(Strings.ratingExplicit, RatingFilter.explicit),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -408,40 +340,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         onJump: (page) =>
             ref.read(postListProvider.notifier).loadPosts(targetPage: page),
       ),
-    );
-  }
-}
-
-class _SortChip extends ConsumerWidget {
-  final String label;
-  final String sortParam;
-  final String current;
-
-  const _SortChip({
-    required this.label,
-    required this.sortParam,
-    required this.current,
-  });
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return ChoiceChip(
-      label: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8.0),
-        child: Text(
-          label,
-          style: const TextStyle(fontSize: 12),
-          maxLines: 1,
-          softWrap: false,
-        ),
-      ),
-      selected: current == sortParam,
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-      labelPadding: const EdgeInsets.symmetric(horizontal: 4),
-      visualDensity: VisualDensity.compact,
-      onSelected: (selected) {
-        if (selected) ref.read(postListProvider.notifier).setSort(sortParam);
-      },
     );
   }
 }

@@ -19,6 +19,9 @@ class Strings {
   static const settings = '设置';
   static const sortLabel = '排序:';
   static const ratingLabel = '评级:';
+  static const mediaTypeLabel = '类型:';
+  static const mediaTypeImage = '图片';
+  static const mediaTypeVideo = '视频';
   static const sortScore = '高分';
   static const sortFav = '收藏';
   static const sortNewest = '最新';
@@ -79,6 +82,33 @@ class Strings {
   static const downloadWebDisabled = 'Web 模式不支持下载（需 Android/iOS）';
   static const permissionDenied = '存储权限被拒绝';
 
+  // 批量下载
+  static const downloadTab = '下载';
+  static const sectionBatchDownload = '批量下载';
+  static const batchWebmToMp4 = 'webm 视频转 mp4';
+  static const batchWebmToMp4Sub = '批量下载视频时优先使用转码 mp4（体积更小、兼容更好）';
+  static const selectAllPage = '全选本页';
+  static const clearSelection = '清空';
+  static const startBatchDownload = '开始下载';
+  static const batchEmptySelection = '请先选择要下载的作品';
+  static const batchConfirmTitle = '批量下载';
+  static const batchProgressTitle = '批量下载中';
+  static const batchFailedCount = '失败';
+  static const batchFinished = '批量下载完成';
+  static const batchCancelled = '批量下载已取消';
+  static const batchQualityNoteMp4On = '视频将转码为 mp4';
+  static const batchQualityNoteMp4Off = '视频将保持原格式';
+  static const ratingPartial = '部分';
+  static const sectionTags = '标签';
+  static const autoSearchOnTagReturn = '选择标签返回时自动搜索';
+  static const autoSearchOnTagReturnSub = '详情页选择标签后，返回主页自动搜索（原标签 + 新标签）';
+  static const selectTag = '选择标签';
+  static const unselectTag = '取消选择标签';
+  static const downloadGridSettings = '下载网格设置';
+  static const downloadGridSettingsSub = '下载页的缩略图高度、列数与每页数量';
+  static const syncWithBrowse = '与浏览一致';
+  static const syncedWithBrowse = '已与浏览设置同步';
+
   // 设置
   static const settingsTitle = '应用设置';
   static const sectionGeneral = '通用设置';
@@ -117,6 +147,10 @@ class Strings {
   static const clearHistoryConfirm = '确定要清空全部浏览历史吗？';
   static const systemLogs = '系统日志';
   static const systemLogsSub = '查看网络请求与图片加载的报错日志';
+  static const sectionAbout = '关于';
+  static const aboutSoftware = '软件：E621浏览器';
+  static const aboutCreator = '创建人：Baozbao';
+  // 版本号由 package_info_plus 动态读取（与 pubspec 保持同步）。
 
   // 黑名单
   static const blacklistTitle = '编辑黑名单';

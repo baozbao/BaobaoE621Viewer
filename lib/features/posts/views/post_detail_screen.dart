@@ -129,63 +129,75 @@ class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
     final current = posts[_currentIndex];
     final isFav = ref.watch(favoritesProvider.notifier).isFavorited(current.id);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('#${current.id}'),
-        // 毛玻璃顶栏：大图顶到栏下时透出模糊色影，比实色挡板更贴合看图场景。
-        backgroundColor: Colors.transparent,
-        scrolledUnderElevation: 0,
-        flexibleSpace: FrostedSurface(
-          border: AppTheme.surfaceBorder(
-            light: Theme.of(context).brightness == Brightness.light,
-          ),
-        ),
-        actions: [
-          IconButton(
-            tooltip: isFav
-                ? Strings.removedFromFavorites
-                : Strings.added2Favorites,
-            icon: Icon(
-              isFav ? Icons.favorite : Icons.favorite_border,
-              color: isFav ? Colors.redAccent : null,
+    return PopScope(
+      // 返回主页时：若开启「选择标签返回时自动搜索」且有暂选标签，
+      // 自动搜索 原标签 + 新标签。
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) return;
+        final settings = ref.read(settingsProvider);
+        final pending = ref.read(postListProvider).pendingTags;
+        if (settings.autoSearchOnTagReturn && pending.isNotEmpty) {
+          ref.read(postListProvider.notifier).applyPendingTags();
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text('#${current.id}'),
+          // 毛玻璃顶栏：大图顶到栏下时透出模糊色影，比实色挡板更贴合看图场景。
+          backgroundColor: Colors.transparent,
+          scrolledUnderElevation: 0,
+          flexibleSpace: FrostedSurface(
+            border: AppTheme.surfaceBorder(
+              light: Theme.of(context).brightness == Brightness.light,
             ),
-            onPressed: () {
-              ref.read(favoritesProvider.notifier).toggle(current);
-              ScaffoldMessenger.of(context)
-                ..hideCurrentSnackBar()
-                ..showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      isFav
-                          ? Strings.removedFromFavorites
-                          : Strings.added2Favorites,
+          ),
+          actions: [
+            IconButton(
+              tooltip: isFav
+                  ? Strings.removedFromFavorites
+                  : Strings.added2Favorites,
+              icon: Icon(
+                isFav ? Icons.favorite : Icons.favorite_border,
+                color: isFav ? Colors.redAccent : null,
+              ),
+              onPressed: () {
+                ref.read(favoritesProvider.notifier).toggle(current);
+                ScaffoldMessenger.of(context)
+                  ..hideCurrentSnackBar()
+                  ..showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        isFav
+                            ? Strings.removedFromFavorites
+                            : Strings.added2Favorites,
+                      ),
+                      duration: const Duration(seconds: 1),
                     ),
-                    duration: const Duration(seconds: 1),
-                  ),
-                );
-            },
-          ),
-          IconButton(
-            tooltip: Strings.download,
-            icon: const Icon(Icons.download),
-            onPressed: () =>
-                DownloadHelper.showDownloadSheet(context, ref, current),
-          ),
-        ],
-      ),
-      body: PageView.builder(
-        controller: _pageController,
-        physics: _zoomed ? const NeverScrollableScrollPhysics() : null,
-        itemCount: posts.length,
-        onPageChanged: (i) => _onPageChanged(i, posts.length),
-        itemBuilder: (context, index) {
-          return _PostDetailPage(
-            post: posts[index],
-            onZoomChanged: (z) {
-              if (z != _zoomed) setState(() => _zoomed = z);
-            },
-          );
-        },
+                  );
+              },
+            ),
+            IconButton(
+              tooltip: Strings.download,
+              icon: const Icon(Icons.download),
+              onPressed: () =>
+                  DownloadHelper.showDownloadSheet(context, ref, current),
+            ),
+          ],
+        ),
+        body: PageView.builder(
+          controller: _pageController,
+          physics: _zoomed ? const NeverScrollableScrollPhysics() : null,
+          itemCount: posts.length,
+          onPageChanged: (i) => _onPageChanged(i, posts.length),
+          itemBuilder: (context, index) {
+            return _PostDetailPage(
+              post: posts[index],
+              onZoomChanged: (z) {
+                if (z != _zoomed) setState(() => _zoomed = z);
+              },
+            );
+          },
+        ),
       ),
     );
   }

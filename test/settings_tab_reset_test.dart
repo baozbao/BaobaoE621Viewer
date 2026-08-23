@@ -26,7 +26,7 @@ void main() {
 
     // 用底栏切到浏览，再切回设置（走的是 _onTap → goBranch 这条真实路径）。
     await tapBranch(tester, 0);
-    await tapBranch(tester, 3);
+    await tapBranch(tester, 4);
 
     expect(
       currentPath(router),
@@ -41,11 +41,11 @@ void main() {
     // 空态提示折成十几行撑出竖向溢出，与导航逻辑无关。
     final resets = ScaffoldWithNavBar.shouldResetBranch;
 
-    expect(resets(3, 0), isTrue, reason: '从浏览切到设置应重置到设置首页');
-    expect(resets(3, 3), isTrue, reason: '重复点设置应回设置首页');
-    expect(resets(0, 3), isFalse, reason: '切到浏览应保留浏览自己的栈');
-    expect(resets(1, 0), isFalse, reason: '切到热门应保留热门自己的栈');
-    expect(resets(2, 1), isFalse, reason: '切到收藏应保留收藏自己的栈');
+    expect(resets(4, 0), isTrue, reason: '从浏览切到设置应重置到设置首页');
+    expect(resets(4, 4), isTrue, reason: '重复点设置应回设置首页');
+    expect(resets(0, 4), isFalse, reason: '切到浏览应保留浏览自己的栈');
+    expect(resets(2, 0), isFalse, reason: '切到热门应保留热门自己的栈');
+    expect(resets(3, 2), isFalse, reason: '切到收藏应保留收藏自己的栈');
     expect(resets(0, 0), isTrue, reason: '重复点当前 tab 应回该分支根路由');
   });
 
@@ -57,7 +57,7 @@ void main() {
     final settingsIndex = bar.destinations.indexWhere(
       (d) => d is NavigationDestination && d.label == '设置',
     );
-    expect(settingsIndex, 3, reason: '设置不在下标 3，需同步更新重置逻辑里的常量');
+    expect(settingsIndex, 4, reason: '设置不在下标 4，需同步更新重置逻辑里的常量');
   });
 }
 

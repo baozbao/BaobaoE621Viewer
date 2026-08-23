@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import '../providers/settings_provider.dart';
 import '../../posts/providers/post_list_provider.dart';
 import '../../search/providers/search_history_provider.dart';
@@ -221,6 +222,38 @@ class SettingsScreen extends ConsumerWidget {
           ),
 
           const Divider(),
+          _sectionHeader(context, Strings.sectionBatchDownload),
+
+          SwitchListTile(
+            dense: true,
+            secondary: const Icon(Icons.video_file_outlined),
+            title: const Text(Strings.batchWebmToMp4),
+            subtitle: const Text(Strings.batchWebmToMp4Sub),
+            value: settings.batchWebmToMp4,
+            onChanged: notifier.updateBatchWebmToMp4,
+          ),
+
+          ListTile(
+            leading: const Icon(Icons.grid_view),
+            title: const Text(Strings.downloadGridSettings),
+            subtitle: const Text(Strings.downloadGridSettingsSub),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => context.push('/settings/download-grid'),
+          ),
+
+          const Divider(),
+          _sectionHeader(context, Strings.sectionTags),
+
+          SwitchListTile(
+            dense: true,
+            secondary: const Icon(Icons.sell_outlined),
+            title: const Text(Strings.autoSearchOnTagReturn),
+            subtitle: const Text(Strings.autoSearchOnTagReturnSub),
+            value: settings.autoSearchOnTagReturn,
+            onChanged: notifier.updateAutoSearchOnTagReturn,
+          ),
+
+          const Divider(),
           _sectionHeader(context, Strings.sectionDev),
 
           SwitchListTile(
@@ -238,6 +271,22 @@ class SettingsScreen extends ConsumerWidget {
             subtitle: const Text(Strings.systemLogsSub),
             trailing: const Icon(Icons.chevron_right),
             onTap: () => context.push('/settings/logs'),
+          ),
+
+          const Divider(),
+          _sectionHeader(context, Strings.sectionAbout),
+
+          // 版本号动态读取（package_info_plus），与 pubspec 保持同步。
+          FutureBuilder<PackageInfo>(
+            future: PackageInfo.fromPlatform(),
+            builder: (context, snap) {
+              final version = snap.hasData ? snap.data!.version : '';
+              return ListTile(
+                leading: const Icon(Icons.info_outline),
+                title: const Text(Strings.aboutSoftware),
+                subtitle: Text('${Strings.aboutCreator}\nVersion：$version'),
+              );
+            },
           ),
         ],
       ),

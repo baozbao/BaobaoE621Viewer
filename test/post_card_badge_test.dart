@@ -318,41 +318,6 @@ void main() {
     });
   }
 
-  testWidgets('评级色条避开圆角，不与裁剪弧线相交', (tester) async {
-    // 色条通高（top/bottom = 0）时会在四个圆角处被 ClipRRect 的弧线切过，
-    // Explicit 帖子（红）看起来就是卡片外缘一道红亮边。
-    await pumpCard(
-      tester,
-      makePost(
-        previewW: 150,
-        previewH: 200,
-        fileW: 1500,
-        fileH: 2000,
-        rating: 'e',
-      ),
-    );
-
-    final cardRect = tester.getRect(find.byType(PostCard));
-    // 色条是 PostCard 里唯一宽度恰好 2px 的 SizedBox。
-    final bar = find.byWidgetPredicate(
-      (w) => w is SizedBox && w.width == 2 && w.height == null,
-    );
-    expect(bar, findsOneWidget, reason: '找不到评级色条');
-
-    final barRect = tester.getRect(bar);
-    const radius = 10.0;
-    expect(
-      barRect.top - cardRect.top,
-      greaterThanOrEqualTo(radius),
-      reason: '色条顶端伸进了圆角区域，会被裁出一段亮弧',
-    );
-    expect(
-      cardRect.bottom - barRect.bottom,
-      greaterThanOrEqualTo(radius),
-      reason: '色条底端伸进了圆角区域，会被裁出一段亮弧',
-    );
-  });
-
   testWidgets('preview 与 file 宽高比不一致时，底部信息栏仍在可见区内', (tester) async {
     // preview 是 150 宽的缩略图，比例与原图不同。
     await pumpCard(

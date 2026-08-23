@@ -29,6 +29,15 @@ class AppSettings {
   final bool showPreviewUpvote;
   final bool showPreviewScore;
   final bool showPostCardDiagnostic;
+  final bool batchWebmToMp4;
+
+  /// 下载页网格设置（独立于浏览页；默认与浏览页默认值一致）。
+  final int downloadPreviewHeight;
+  final int downloadWorksPerRow;
+  final int downloadPageSize;
+
+  /// 详情页选择标签返回主页时是否自动搜索（默认开）。
+  final bool autoSearchOnTagReturn;
 
   const AppSettings({
     this.siteHost = 'e621.net',
@@ -44,6 +53,11 @@ class AppSettings {
     this.showPreviewUpvote = true,
     this.showPreviewScore = true,
     this.showPostCardDiagnostic = false,
+    this.batchWebmToMp4 = true,
+    this.downloadPreviewHeight = 150,
+    this.downloadWorksPerRow = 4,
+    this.downloadPageSize = 40,
+    this.autoSearchOnTagReturn = true,
   });
 
   AppSettings copyWith({
@@ -60,6 +74,11 @@ class AppSettings {
     bool? showPreviewUpvote,
     bool? showPreviewScore,
     bool? showPostCardDiagnostic,
+    bool? batchWebmToMp4,
+    int? downloadPreviewHeight,
+    int? downloadWorksPerRow,
+    int? downloadPageSize,
+    bool? autoSearchOnTagReturn,
   }) {
     return AppSettings(
       siteHost: siteHost ?? this.siteHost,
@@ -76,6 +95,13 @@ class AppSettings {
       showPreviewScore: showPreviewScore ?? this.showPreviewScore,
       showPostCardDiagnostic:
           showPostCardDiagnostic ?? this.showPostCardDiagnostic,
+      batchWebmToMp4: batchWebmToMp4 ?? this.batchWebmToMp4,
+      downloadPreviewHeight:
+          downloadPreviewHeight ?? this.downloadPreviewHeight,
+      downloadWorksPerRow: downloadWorksPerRow ?? this.downloadWorksPerRow,
+      downloadPageSize: downloadPageSize ?? this.downloadPageSize,
+      autoSearchOnTagReturn:
+          autoSearchOnTagReturn ?? this.autoSearchOnTagReturn,
     );
   }
 }
@@ -105,6 +131,13 @@ class SettingsNotifier extends Notifier<AppSettings> {
       showPreviewScore: prefs.getBool(PrefKeys.showPreviewScore) ?? true,
       showPostCardDiagnostic:
           prefs.getBool(PrefKeys.showPostCardDiagnostic) ?? false,
+      batchWebmToMp4: prefs.getBool(PrefKeys.batchWebmToMp4) ?? true,
+      downloadPreviewHeight:
+          prefs.getInt(PrefKeys.downloadPreviewHeight) ?? 150,
+      downloadWorksPerRow: prefs.getInt(PrefKeys.downloadWorksPerRow) ?? 4,
+      downloadPageSize: prefs.getInt(PrefKeys.downloadPageSize) ?? 40,
+      autoSearchOnTagReturn:
+          prefs.getBool(PrefKeys.autoSearchOnTagReturn) ?? true,
     );
   }
 
@@ -168,6 +201,43 @@ class SettingsNotifier extends Notifier<AppSettings> {
   void updateShowPostCardDiagnostic(bool value) {
     state = state.copyWith(showPostCardDiagnostic: value);
     _p.setBool(PrefKeys.showPostCardDiagnostic, value);
+  }
+
+  void updateBatchWebmToMp4(bool value) {
+    state = state.copyWith(batchWebmToMp4: value);
+    _p.setBool(PrefKeys.batchWebmToMp4, value);
+  }
+
+  void updateDownloadPreviewHeight(int height) {
+    state = state.copyWith(downloadPreviewHeight: height);
+    _p.setInt(PrefKeys.downloadPreviewHeight, height);
+  }
+
+  void updateDownloadWorksPerRow(int count) {
+    state = state.copyWith(downloadWorksPerRow: count);
+    _p.setInt(PrefKeys.downloadWorksPerRow, count);
+  }
+
+  void updateDownloadPageSize(int size) {
+    state = state.copyWith(downloadPageSize: size);
+    _p.setInt(PrefKeys.downloadPageSize, size);
+  }
+
+  void updateAutoSearchOnTagReturn(bool value) {
+    state = state.copyWith(autoSearchOnTagReturn: value);
+    _p.setBool(PrefKeys.autoSearchOnTagReturn, value);
+  }
+
+  /// 一键把下载页网格设置同步为浏览页当前值。
+  void syncDownloadGridWithBrowse() {
+    state = state.copyWith(
+      downloadPreviewHeight: state.previewHeight,
+      downloadWorksPerRow: state.worksPerRow,
+      downloadPageSize: state.pageSize,
+    );
+    _p.setInt(PrefKeys.downloadPreviewHeight, state.previewHeight);
+    _p.setInt(PrefKeys.downloadWorksPerRow, state.worksPerRow);
+    _p.setInt(PrefKeys.downloadPageSize, state.pageSize);
   }
 
   void addBlacklistTag(String tag) {

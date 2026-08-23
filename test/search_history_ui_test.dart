@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_e621_viewer/core/constants/pref_keys.dart';
 import 'package:flutter_e621_viewer/core/constants/strings.dart';
 import 'package:flutter_e621_viewer/features/home/widgets/search_bar_widget.dart';
+import 'package:flutter_e621_viewer/features/posts/providers/post_list_provider.dart';
 import 'package:flutter_e621_viewer/features/settings/providers/settings_provider.dart';
 
 void main() {
@@ -19,7 +20,16 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
-        child: const MaterialApp(home: Scaffold(body: SearchBarWidget())),
+        child: MaterialApp(
+          home: Scaffold(
+            body: SearchBarWidget<PostListState>(
+              stateProvider: postListProvider,
+              displayTagsOf: (s) => s.displayTags,
+              onSearch: (ref, q) =>
+                  ref.read(postListProvider.notifier).search(q),
+            ),
+          ),
+        ),
       ),
     );
     await tester.pumpAndSettle();
@@ -34,10 +44,10 @@ void main() {
   testWidgets('点击输入框即弹出历史，即使框里带着当前生效的标签', (tester) async {
     await pump(tester, ['cat female', 'dog']);
 
-    // 输入框初始带着 currentTags（默认 female）。
+    // 输入框初始带着 displayTags（默认 female + 默认排序）。
     expect(
       tester.widget<TextField>(find.byType(TextField).first).controller?.text,
-      'female',
+      'female order:score',
     );
 
     await openDropdown(tester);
@@ -98,7 +108,7 @@ void main() {
 
     expect(
       tester.widget<TextField>(find.byType(TextField).first).controller?.text,
-      'cat female',
+      'cat female order:score',
     );
   });
 
@@ -133,7 +143,14 @@ void main() {
             body: CustomScrollView(
               controller: outerScroll,
               slivers: [
-                const SliverToBoxAdapter(child: SearchBarWidget()),
+                SliverToBoxAdapter(
+                  child: SearchBarWidget<PostListState>(
+                    stateProvider: postListProvider,
+                    displayTagsOf: (s) => s.displayTags,
+                    onSearch: (ref, q) =>
+                        ref.read(postListProvider.notifier).search(q),
+                  ),
+                ),
                 SliverList.builder(
                   itemCount: 100,
                   itemBuilder: (c, i) =>

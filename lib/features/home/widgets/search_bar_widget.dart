@@ -1,63 +1,97 @@
+import 'dart:async';
+import 'dart:math' as math;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart';
 import '../../search/providers/search_history_provider.dart';
 import '../../search/repositories/search_repository.dart';
-import '../../posts/providers/post_list_provider.dart';
 import '../../../core/constants/strings.dart';
 import '../../../core/utils/post_format.dart';
+import '../../../core/widgets/filter_menu_open.dart';
+import 'search_suggestion_panel_data.dart';
+import 'search_suggestion_panel_stub.dart'
+    if (dart.library.js_interop) 'search_suggestion_panel_web.dart'
+    as search_panel;
 
-class SearchBarWidget extends ConsumerStatefulWidget {
-  const SearchBarWidget({super.key});
+/// 通用搜索栏（浏览页 / 下载页共用）。
+///
+/// 通过 [stateProvider] + [displayTagsOf] + [onSearch] 与任意列表 provider
+/// 解耦：输入框显示 provider 的展示标签（含排序/评级），提交时回调通知对方。
+///
+/// Web 端建议面板是 HTML 平台视图（DOM 层在图片之上，不会被预览图遮挡）；
+/// 移动端仍用 SearchAnchor。
+class SearchBarWidget<S> extends ConsumerStatefulWidget {
+  const SearchBarWidget({
+    super.key,
+    required this.stateProvider,
+    required this.displayTagsOf,
+    required this.onSearch,
+  });
+
+  final ProviderListenable<S> stateProvider;
+
+  /// 从状态取"搜索框应显示的完整标签串"（用户标签 + 排序 + 评级）。
+  final String Function(S state) displayTagsOf;
+
+  /// 用户提交搜索时回调（query 为输入框原始文本）。
+  final void Function(WidgetRef ref, String query) onSearch;
 
   @override
-  ConsumerState<SearchBarWidget> createState() => _SearchBarWidgetState();
+  ConsumerState<SearchBarWidget<S>> createState() => _SearchBarWidgetState<S>();
 }
 
-class _SearchBarWidgetState extends ConsumerState<SearchBarWidget> {
+class _SearchBarWidgetState<S> extends ConsumerState<SearchBarWidget<S>> {
   late final SearchController _controller;
 
   /// 历史列表自己的滚动控制器（PRD-028）。有了它这块区域的滚动才独立于
-  /// 下层页面，否则手势会落到首页的 CustomScrollView 上。
+  /// 下层页面，否则手势会落到页面的 CustomScrollView 上。
   final ScrollController _historyScroll = ScrollController();
 
   /// 本次打开视图后用户是否敲过键盘。false 时优先展示历史 ——
   /// 输入框里带着当前生效的标签，不能仅凭「有内容」就去走标签补全。
   bool _userEdited = false;
 
+  // ---- Web 专用：自定义建议面板（HTML 平台视图）----
+  final GlobalKey _webFieldKey = GlobalKey();
+  final FocusNode _webFocus = FocusNode();
+  OverlayEntry? _webEntry;
+  Rect? _webRect;
+  Timer? _webDebounce;
+  List<SearchSuggestionRowData> _webRows = const [];
+
   @override
   void initState() {
     super.initState();
     _controller = SearchController()
-      ..text = ref.read(postListProvider).displayTags;
+      ..text = widget.displayTagsOf(ref.read(widget.stateProvider));
+    registerFilterMenuClose(_closeWebPanel);
   }
 
   @override
   void dispose() {
+    unregisterFilterMenuClose(_closeWebPanel);
+    _webDebounce?.cancel();
+    _closeWebPanel();
+    _webFocus.dispose();
     _historyScroll.dispose();
     _controller.dispose();
     super.dispose();
   }
 
   void _submitSearch(String query) {
-    // 空提交不改变搜索条件，但 SearchAnchor 的 closeView 已经把输入框刷成了
-    // 空串。此时若直接 return，输入框显示空、provider 里还是旧标签，二者失同步：
-    // 之后每次提交都是空串又被这里拦掉，界面看着能点却怎么都刷不出来，
-    // 只有输入新词让 currentTags 真的变化才能恢复。所以要把输入框回填成
-    // 当前实际生效的搜索条件，让 UI 始终反映真实状态。
+    // 空提交不改变搜索条件。把输入框回填成当前实际生效的搜索条件，
+    // 让 UI 始终反映真实状态。
     if (query.trim().isEmpty) {
-      _controller.text = ref.read(postListProvider).displayTags;
+      _controller.text = widget.displayTagsOf(ref.read(widget.stateProvider));
       _controller.selection = TextSelection.collapsed(
         offset: _controller.text.length,
       );
       return;
     }
-    ref.read(postListProvider.notifier).search(query);
-
-    // 延迟更新历史：搜索视图关闭时有动画，此时若立即改历史 provider，
-    // Riverpod 会尝试重建已卸载的 suggestionsBuilder，触发白屏崩溃。
-    Future.delayed(const Duration(milliseconds: 300), () {
-      ref.read(searchHistoryProvider.notifier).addSearch(query);
-    });
+    // 历史由 provider 的 search() 统一记录（含 tag 点击、默认请求），
+    // 这里不再重复添加，避免同集合重复项。
+    widget.onSearch(ref, query);
   }
 
   /// 取输入里光标前的最后一个词（多标签组合搜索时只补全当前词）。
@@ -80,16 +114,196 @@ class _SearchBarWidgetState extends ConsumerState<SearchBarWidget> {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    // 监听外部对搜索标签的修改（如从详情页点标签搜索）。
-    ref.listen(postListProvider, (previous, next) {
-      if (previous?.displayTags != next.displayTags &&
-          _controller.text != next.displayTags) {
-        _controller.text = next.displayTags;
-      }
-    });
+  // ===================== Web：HTML 建议面板 =====================
 
+  void _openWebPanel() {
+    // 一键关闭其它打开的下拉/面板（含筛选下拉），再开自己的面板。
+    closeAllFilterMenus();
+    if (_webEntry != null) return;
+
+    final box = _webFieldKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null) return;
+    final offset = box.localToGlobal(Offset.zero);
+    final size = box.size;
+
+    _webRows = _historyRows();
+    _webRect = Rect.fromLTWH(
+      offset.dx,
+      offset.dy + size.height + 3,
+      size.width,
+      300,
+    );
+    filterMenuRects.value = List<Rect>.from(filterMenuRects.value)
+      ..add(_webRect!);
+
+    _webEntry = OverlayEntry(
+      builder: (context) => _buildWebPanel(offset, size),
+    );
+    Overlay.of(context).insert(_webEntry!);
+    setState(() {});
+  }
+
+  void _closeWebPanel() {
+    if (_webEntry == null) return;
+    if (_webRect != null) {
+      filterMenuRects.value = List<Rect>.from(filterMenuRects.value)
+        ..removeWhere((r) => r == _webRect);
+    }
+    _webRect = null;
+    _webEntry?.remove();
+    _webEntry = null;
+    _webDebounce?.cancel();
+    if (mounted) setState(() {});
+  }
+
+  void _refreshWebPanel() {
+    _webEntry?.markNeedsBuild();
+  }
+
+  List<SearchSuggestionRowData> _historyRows() {
+    final history = ref.read(searchHistoryProvider);
+    return [
+      for (final q in history)
+        SearchSuggestionRowData(
+          text: q,
+          onTap: () {
+            _closeWebPanel();
+            _submitSearch(q);
+          },
+          onDelete: () {
+            ref.read(searchHistoryProvider.notifier).removeSearch(q);
+            _webRows = _historyRows();
+            _refreshWebPanel();
+          },
+        ),
+    ];
+  }
+
+  void _scheduleAutocomplete() {
+    _webDebounce?.cancel();
+    _webDebounce = Timer(const Duration(milliseconds: 300), () async {
+      final token = _lastToken(_controller.text).trim();
+
+      List<SearchSuggestionRowData> rows;
+      if (token.isEmpty) {
+        rows = _historyRows();
+      } else {
+        try {
+          final tags = await ref
+              .read(searchRepositoryProvider)
+              .getTagAutocomplete(token);
+          if (!mounted) return;
+          rows = [
+            for (final tag in tags)
+              SearchSuggestionRowData(
+                text: tag.name,
+                color: PostFormat.tagCategoryColor(tag.category),
+                sub: tag.antecedentName != null
+                    ? '${tag.antecedentName} →'
+                    : null,
+                count: '${PostFormat.compactCount(tag.postCount)} 帖',
+                onTap: () {
+                  _applyCompletion(_controller.text, tag.name);
+                  _scheduleAutocomplete();
+                },
+              ),
+          ];
+        } catch (_) {
+          if (!mounted) return;
+          rows = _historyRows();
+        }
+      }
+
+      if (!mounted) return;
+      setState(() => _webRows = rows);
+      _refreshWebPanel();
+    });
+  }
+
+  Widget _buildWebPanel(Offset offset, Size size) {
+    final scheme = Theme.of(context).colorScheme;
+
+    final viewId = search_panel.registerSearchSuggestionPanel(
+      rows: _webRows,
+      surfaceArgb: scheme.surface.toARGB32(),
+      outlineArgb: scheme.outline.toARGB32(),
+      onSurfaceArgb: scheme.onSurface.toARGB32(),
+    );
+
+    final panelHeight = math
+        .min(_webRows.length * 34.0 + 2.0, 300.0)
+        .clamp(44.0, 300.0);
+
+    return Stack(
+      children: [
+        // 点面板外（搜索栏以下）关闭。
+        Positioned(
+          top: offset.dy + size.height + 3,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: _closeWebPanel,
+            child: const ColoredBox(color: Colors.transparent),
+          ),
+        ),
+        Positioned(
+          left: offset.dx,
+          top: offset.dy + size.height + 3,
+          width: size.width,
+          height: panelHeight,
+          child: HtmlElementView(viewType: viewId),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildWebSearchBar() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+      child: SearchBar(
+        key: _webFieldKey,
+        controller: _controller,
+        focusNode: _webFocus,
+        onTap: () {
+          // 点开即从历史开始（与 SearchAnchor 行为一致）。
+          _userEdited = false;
+          _openWebPanel();
+        },
+        constraints: const BoxConstraints(maxHeight: 44),
+        padding: const WidgetStatePropertyAll<EdgeInsets>(
+          EdgeInsets.symmetric(horizontal: 16.0),
+        ),
+        onChanged: (value) {
+          _userEdited = true;
+          _scheduleAutocomplete();
+        },
+        onSubmitted: (value) {
+          _closeWebPanel();
+          _submitSearch(value);
+        },
+        leading: const Icon(Icons.search, size: 20),
+        trailing: [
+          if (_controller.text.isNotEmpty)
+            IconButton(
+              icon: const Icon(Icons.clear, size: 20),
+              padding: EdgeInsets.zero,
+              // X = 清除搜索：真正清空 provider 里的搜索条件并刷新。
+              onPressed: () {
+                _closeWebPanel();
+                _controller.clear();
+                widget.onSearch(ref, '');
+              },
+            ),
+        ],
+      ),
+    );
+  }
+
+  // ===================== 移动端：SearchAnchor =====================
+
+  Widget _buildAnchorSearchBar(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
       child: SearchAnchor(
@@ -118,6 +332,7 @@ class _SearchBarWidgetState extends ConsumerState<SearchBarWidget> {
             // 每次点开重新从历史开始。注意必须自己调 openView：
             // 传了 onTap 就覆盖掉 SearchBar 默认的打开行为，漏掉这句点击会没反应。
             onTap: () {
+              closeAllFilterMenus();
               _userEdited = false;
               controller.openView();
             },
@@ -132,7 +347,11 @@ class _SearchBarWidgetState extends ConsumerState<SearchBarWidget> {
                 IconButton(
                   icon: const Icon(Icons.clear, size: 20),
                   padding: EdgeInsets.zero,
-                  onPressed: controller.clear,
+                  // X = 清除搜索：真正清空 provider 里的搜索条件并刷新。
+                  onPressed: () {
+                    controller.clear();
+                    widget.onSearch(ref, '');
+                  },
                 ),
             ],
           );
@@ -198,6 +417,21 @@ class _SearchBarWidgetState extends ConsumerState<SearchBarWidget> {
         },
       ),
     );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // 监听列表状态：排序/评级/标签变化时同步输入框展示串。
+    ref.listen<S>(widget.stateProvider, (previous, next) {
+      final prevTags = previous == null ? '' : widget.displayTagsOf(previous);
+      final nextTags = widget.displayTagsOf(next);
+      if (prevTags != nextTags && _controller.text != nextTags) {
+        _controller.text = nextTags;
+      }
+    });
+
+    if (kIsWeb) return _buildWebSearchBar();
+    return _buildAnchorSearchBar(context);
   }
 
   /// 历史下拉（PRD-028）。

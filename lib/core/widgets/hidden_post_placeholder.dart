@@ -25,31 +25,36 @@ class HiddenPostPlaceholder extends StatelessWidget {
   Widget build(BuildContext context) {
     final color = Theme.of(context).colorScheme.onSurface.withAlpha(140);
 
+    // FittedBox(scaleDown)：单元格极小时（瀑布流窄列 / 下载页小格子）
+    // 内容整体等比缩小，而不是溢出（RenderFlex overflow）。
     return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            deleted ? Icons.delete_outline : Icons.lock_outline,
-            size: compact ? 28 : 48,
-            color: color,
-          ),
-          SizedBox(height: compact ? 4 : 8),
-          Text(
-            deleted ? '帖子已删除' : '仅登录后可见',
-            style: TextStyle(color: color, fontSize: compact ? 10 : 14),
-          ),
-          if (!compact && !deleted) ...[
-            const SizedBox(height: 4),
-            Text(
-              'e621 对未登录用户隐藏了此图片',
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.onSurface.withAlpha(90),
-                fontSize: 12,
-              ),
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              deleted ? Icons.delete_outline : Icons.lock_outline,
+              size: compact ? 28 : 48,
+              color: color,
             ),
+            SizedBox(height: compact ? 4 : 8),
+            Text(
+              deleted ? '帖子已删除' : '仅登录后可见',
+              style: TextStyle(color: color, fontSize: compact ? 10 : 14),
+            ),
+            if (!compact && !deleted) ...[
+              const SizedBox(height: 4),
+              Text(
+                'e621 对未登录用户隐藏了此图片',
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurface.withAlpha(90),
+                  fontSize: 12,
+                ),
+              ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }
