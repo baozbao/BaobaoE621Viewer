@@ -43,3 +43,9 @@ kotlin {
 flutter {
     source = "../.."
 }
+
+// Gradle 9 移除了 archivesBaseName，APK/AAB 文件名改用 base.archivesName。
+// 产物输出为 E621浏览器-release.apk / E621浏览器-debug.apk。
+base {
+    archivesName = "E621浏览器"
+}

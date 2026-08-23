@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FlutterE621Viewer · 前端/产品可改进清单</title>
+<script>
+  // 首屏前应用已保存主题,避免闪烁
+  (function(){
+    try{
+      var t=localStorage.getItem('e621viewer_theme');
+      if(t&&t!=='dark') document.documentElement.setAttribute('data-theme',t);
+    }catch(e){}
+  })();
+</script>
+<style>
+  :root{  /* 暗色(默认) */
+    --bg:#0d1117; --bg2:#161b22; --bg3:#1c2330; --line:#2d333b;
+    --fg:#e6edf3; --fg2:#9aa4b2; --fg3:#6b7480;
+    --accent:#4f8cff; --accent2:#9b6dff;
+    --p0:#ff5d5d; --p1:#ffb340; --p2:#41c47d;
+    --mark:#ffd866;
+    --radius:12px;
+  }
+  html[data-theme="light"]{  /* 亮色 */
+    --bg:#f6f8fa; --bg2:#ffffff; --bg3:#eef1f5; --line:#d0d7de;
+    --fg:#1f2328; --fg2:#57606a; --fg3:#8c959f;
+    --accent:#0969da; --accent2:#8250df;
+    --p0:#cf222e; --p1:#bc4c00; --p2:#1a7f37;
+    --mark:#9a6700;
+    --radius:12px;
+  }
+  html[data-theme="win97"]{  /* Windows 97 复古 */
+    --bg:#008080; --bg2:#c0c0c0; --bg3:#c0c0c0; --line:#808080;
+    --fg:#000000; --fg2:#000000; --fg3:#404040;
+    --accent:#000080; --accent2:#000080;
+    --p0:#aa0000; --p1:#9a5000; --p2:#008000;
+    --mark:#000080;
+    --radius:0px;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0; background:var(--bg); color:var(--fg);
+    font-family:"Segoe UI","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+    line-height:1.6;
+  }
+  /* ---------- 顶栏 ---------- */
+  header{
+    position:sticky; top:0; z-index:50;
+    background:linear-gradient(180deg,rgba(13,17,23,.97),rgba(13,17,23,.92));
+    backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--line);
+    padding:14px 22px 10px;
+  }
+  header h1{
+    margin:0; font-size:19px; letter-spacing:.5px;
+    background:linear-gradient(90deg,var(--accent),var(--accent2));
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+    display:inline-block;
+  }
+  header .sub{font-size:12px; color:var(--fg3); margin-left:10px}
+  .progress-wrap{display:flex; align-items:center; gap:12px; margin-top:8px}
+  .progress-bar{flex:1; height:8px; background:var(--bg3); border-radius:99px; overflow:hidden}
+  .progress-fill{height:100%; width:0%; border-radius:99px;
+    background:linear-gradient(90deg,var(--accent),var(--accent2));
+    transition:width .4s ease}
+  #progressText{font-size:12px; color:var(--fg2); min-width:110px; text-align:right}
+  /* ---------- 筛选 ---------- */
+  .filters{display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; align-items:center}
+  .pill{
+    border:1px solid var(--line); background:var(--bg2); color:var(--fg2);
+    border-radius:99px; padding:3px 14px; font-size:12.5px; cursor:pointer;
+    user-select:none; transition:all .15s;
+  }
+  .pill:hover{border-color:var(--accent); color:var(--fg)}
+  .pill.on{background:var(--accent); border-color:var(--accent); color:#fff}
+  .pill.p0.on{background:var(--p0); border-color:var(--p0)}
+  .pill.p1.on{background:var(--p1); border-color:var(--p1); color:#222}
+  .pill.p2.on{background:var(--p2); border-color:var(--p2); color:#12331f}
+  #searchBox{
+    margin-left:auto; background:var(--bg2); border:1px solid var(--line);
+    color:var(--fg); border-radius:8px; padding:5px 12px; font-size:13px; width:210px;
+    outline:none;
+  }
+  #searchBox:focus{border-color:var(--accent)}
+  /* ---------- 主体 ---------- */
+  main{max-width:1060px; margin:0 auto; padding:26px 22px 90px}
+  .intro{
+    background:var(--bg2); border:1px solid var(--line); border-radius:var(--radius);
+    padding:16px 20px; font-size:13.5px; color:var(--fg2); margin-bottom:30px;
+  }
+  .intro b{color:var(--fg)}
+  .legend{display:flex; gap:16px; flex-wrap:wrap; margin-top:8px; font-size:12.5px}
+  .dot{display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:5px}
+  section{margin-bottom:44px}
+  section>h2{
+    font-size:17px; border-left:4px solid var(--accent); padding-left:12px;
+    margin:0 0 6px; letter-spacing:.5px;
+  }
+  section>.sec-desc{font-size:13px; color:var(--fg3); margin:0 0 16px; padding-left:16px}
+  /* ---------- 手机线框图 ---------- */
+  .mock{
+    background:#0a0d12; border:1px solid var(--line); border-radius:var(--radius);
+    padding:18px 22px; overflow-x:auto; margin:0 0 22px;
+  }
+  .mock .cap{font-size:12px; color:var(--fg3); margin-bottom:8px}
+  .mock pre{
+    margin:0; font-family:"Cascadia Mono","JetBrains Mono",Consolas,monospace;
+    font-size:13px; line-height:1.45; color:#b8c4d0; white-space:pre;
+  }
+  .mock a.mk{
+    color:var(--mark); background:rgba(255,216,102,.12); border-radius:4px;
+    text-decoration:none; font-weight:700; padding:0 2px;
+  }
+  .mock a.mk:hover{background:rgba(255,216,102,.3)}
+  .mock .good{color:#7ee2a8}
+  .mock .bad{color:#ff8080}
+  .mock .dim{color:#525c68}
+  /* ---------- 卡片 ---------- */
+  .card{
+    background:var(--bg2); border:1px solid var(--line); border-radius:var(--radius);
+    margin-bottom:12px; overflow:hidden; transition:border-color .2s, opacity .3s;
+  }
+  .card:target{border-color:var(--mark); box-shadow:0 0 0 1px var(--mark)}
+  .card.done{opacity:.45}
+  .card.hidden{display:none}
+  .card summary{
+    list-style:none; cursor:pointer; display:flex; align-items:center; gap:12px;
+    padding:13px 18px;
+  }
+  .card summary::-webkit-details-marker{display:none}
+  .card summary:hover{background:var(--bg3)}
+  .card input[type=checkbox]{
+    width:17px; height:17px; accent-color:var(--p2); cursor:pointer; flex-shrink:0;
+  }
+  .cid{
+    font-family:Consolas,monospace; font-size:12px; color:var(--accent);
+    background:rgba(79,140,255,.12); padding:1px 8px; border-radius:6px; flex-shrink:0;
+  }
+  .ctitle{font-size:14.5px; font-weight:600; flex:1}
+  .card.done .ctitle{text-decoration:line-through}
+  .badge{font-size:11px; padding:1px 9px; border-radius:99px; font-weight:700; flex-shrink:0}
+  .bp0{background:rgba(255,93,93,.15); color:var(--p0); border:1px solid var(--p0)}
+  .bp1{background:rgba(255,179,64,.13); color:var(--p1); border:1px solid var(--p1)}
+  .bp2{background:rgba(65,196,125,.12); color:var(--p2); border:1px solid var(--p2)}
+  .beff{background:var(--bg3); color:var(--fg2); border:1px solid var(--line)}
+  .chev{color:var(--fg3); transition:transform .2s; flex-shrink:0}
+  details[open] .chev{transform:rotate(90deg)}
+  .cbody{padding:4px 20px 18px 47px; font-size:13.5px; border-top:1px dashed var(--line)}
+  .cbody h4{
+    margin:14px 0 4px; font-size:12px; color:var(--fg3);
+    text-transform:uppercase; letter-spacing:1.2px;
+  }
+  .cbody p{margin:2px 0; color:#cbd5df}
+  .cbody ul{margin:4px 0; padding-left:20px; color:#cbd5df}
+  .cbody li{margin:3px 0}
+  code{
+    font-family:Consolas,monospace; font-size:12.5px; background:var(--bg3);
+    color:#8ec7ff; padding:1px 6px; border-radius:5px;
+  }
+  .loc{color:var(--p1)}
+  .mini{
+    background:#0a0d12; border:1px solid var(--line); border-radius:8px;
+    padding:10px 14px; margin:8px 0; overflow-x:auto;
+  }
+  .mini pre{margin:0; font-family:Consolas,monospace; font-size:12.5px;
+    line-height:1.45; color:#b8c4d0; white-space:pre}
+  /* ---------- 工具按钮 ---------- */
+  .toolbar{display:flex; gap:8px; margin-bottom:18px}
+  .toolbar button{
+    background:var(--bg2); border:1px solid var(--line); color:var(--fg2);
+    border-radius:8px; padding:5px 14px; font-size:12.5px; cursor:pointer;
+  }
+  .toolbar button:hover{border-color:var(--accent); color:var(--fg)}
+  footer{
+    text-align:center; color:var(--fg3); font-size:12px; padding:30px 0 40px;
+    border-top:1px solid var(--line); margin-top:20px;
+  }
+  /* ================= 主题切换按钮 ================= */
+  .theme-switch{
+    position:absolute; top:12px; right:22px;
+    display:flex; gap:0; align-items:center;
+  }
+  .theme-switch .ts-label{font-size:11px; color:var(--fg3); margin-right:8px}
+  .theme-switch button{
+    background:var(--bg2); border:1px solid var(--line); color:var(--fg2);
+    font-size:12px; padding:4px 11px; cursor:pointer; font-family:inherit;
+    border-right-width:0;
+  }
+  .theme-switch button:first-of-type{border-radius:7px 0 0 7px}
+  .theme-switch button:last-of-type{border-radius:0 7px 7px 0; border-right-width:1px}
+  .theme-switch button:hover{color:var(--fg); border-color:var(--accent)}
+  .theme-switch button.on{background:var(--accent); border-color:var(--accent); color:#fff}
+
+  /* ================= 亮色主题覆盖 ================= */
+  html[data-theme="light"] header{
+    background:linear-gradient(180deg,rgba(255,255,255,.97),rgba(246,248,250,.9));
+  }
+  html[data-theme="light"] .mock,
+  html[data-theme="light"] .mini{background:#f6f8fa}
+  html[data-theme="light"] .mock pre,
+  html[data-theme="light"] .mini pre{color:#3b4551}
+  html[data-theme="light"] .mock .good{color:#1a7f37}
+  html[data-theme="light"] .mock .bad{color:#cf222e}
+  html[data-theme="light"] .mock .dim{color:#8c959f}
+  html[data-theme="light"] .cbody p,
+  html[data-theme="light"] .cbody ul{color:#2f363d}
+  html[data-theme="light"] code{color:#0550ae}
+  html[data-theme="light"] .pill.p1.on{color:#fff}
+  html[data-theme="light"] .pill.p2.on{color:#fff}
+
+  /* ================= Windows 97 复古主题 ================= */
+  html[data-theme="win97"]{
+    --btn-face:#c0c0c0;
+  }
+  html[data-theme="win97"] body{
+    font-family:"MS Sans Serif","Microsoft YaHei",Tahoma,sans-serif;
+  }
+  /* 经典凸起边框:亮边在左上,暗边在右下 */
+  html[data-theme="win97"] header{
+    background:var(--btn-face); backdrop-filter:none;
+    border-bottom:2px solid #808080; box-shadow:inset 1px 1px 0 #fff;
+  }
+  html[data-theme="win97"] header h1{
+    -webkit-text-fill-color:#000080; color:#000080;
+    background:none; font-weight:700;
+  }
+  /* 标题栏蓝条效果 */
+  html[data-theme="win97"] .intro{
+    box-shadow:inset -1px -1px 0 #808080, inset 1px 1px 0 #fff;
+    border:1px solid #dfdfdf;
+  }
+  /* 进度条:凹陷白底 + 纯蓝填充 */
+  html[data-theme="win97"] .progress-bar{
+    background:#fff; border-radius:0;
+    box-shadow:inset 1px 1px 0 #808080, inset -1px -1px 0 #dfdfdf;
+  }
+  html[data-theme="win97"] .progress-fill{
+    background:#000080; border-radius:0;
+  }
+  /* 所有按钮/胶囊 = 经典 3D 凸起方块 */
+  html[data-theme="win97"] .pill,
+  html[data-theme="win97"] .toolbar button,
+  html[data-theme="win97"] .theme-switch button{
+    background:var(--btn-face); border-radius:0;
+    border:2px solid; border-color:#fff #808080 #808080 #fff;
+    box-shadow:inset -1px -1px 0 #808080, inset 1px 1px 0 #dfdfdf;
+    color:#000;
+  }
+  html[data-theme="win97"] .theme-switch button{border-right-width:2px}
+  html[data-theme="win97"] .pill:hover,
+  html[data-theme="win97"] .toolbar button:hover,
+  html[data-theme="win97"] .theme-switch button:hover{color:#000}
+  /* 选中态 = 凹陷 */
+  html[data-theme="win97"] .pill.on,
+  html[data-theme="win97"] .theme-switch button.on{
+    background:#000080; color:#fff;
+    border-color:#808080 #fff #fff #808080;
+    box-shadow:inset 1px 1px 0 #404040;
+  }
+  html[data-theme="win97"] .pill.p0.on{background:#aa0000}
+  html[data-theme="win97"] .pill.p1.on{background:#9a5000; color:#fff}
+  html[data-theme="win97"] .pill.p2.on{background:#008000; color:#fff}
+  /* 卡片 = 凸起窗口 */
+  html[data-theme="win97"] .card{
+    border-radius:0; border:2px solid;
+    border-color:#dfdfdf #808080 #808080 #dfdfdf;
+  }
+  html[data-theme="win97"] .card:target{box-shadow:0 0 0 2px #000080}
+  html[data-theme="win97"] .cid{
+    background:#000080; color:#fff; border-radius:0;
+  }
+  html[data-theme="win97"] #searchBox{
+    border-radius:0; background:#fff;
+    box-shadow:inset 1px 1px 0 #808080, inset -1px -1px 0 #dfdfdf;
+  }
+  /* 代码/线框区 = 凹陷白底 */
+  html[data-theme="win97"] .mock,
+  html[data-theme="win97"] .mini{
+    background:#fff; border-radius:0;
+    box-shadow:inset 1px 1px 0 #808080;
+    border:1px solid #808080;
+  }
+  html[data-theme="win97"] .mock pre,
+  html[data-theme="win97"] .mini pre{color:#000}
+  html[data-theme="win97"] .mock .good{color:#008000}
+  html[data-theme="win97"] .mock .bad{color:#aa0000}
+  html[data-theme="win97"] .mock .dim{color:#606060}
+  html[data-theme="win97"] .mock a.mk{
+    color:#000080; background:#ffff00; font-weight:700;
+  }
+  html[data-theme="win97"] .cbody p,
+  html[data-theme="win97"] .cbody ul{color:#000}
+  html[data-theme="win97"] code{
+    background:#fff; color:#000080; border-radius:0;
+    border:1px solid #c0c0c0;
+  }
+  html[data-theme="win97"] .badge{border-radius:0}
+  html[data-theme="win97"] section>h2{border-left-color:#000080}
+
+  @media (max-width:640px){
+    #searchBox{width:100%; margin-left:0}
+    .cbody{padding-left:20px}
+    .theme-switch{position:static; margin-top:10px; justify-content:flex-end}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="theme-switch" id="themeSwitch">
+    <span class="ts-label">主题</span>
+    <button data-theme-btn="dark"  title="暗色">🌙 暗色</button>
+    <button data-theme-btn="light" title="亮色">☀️ 亮色</button>
+    <button data-theme-btn="win97" title="Windows 97 复古">🖥️ Win97</button>
+  </div>
+  <h1>FlutterE621Viewer · 可改进清单</h1><span class="sub">前端体验 × 产品功能 · 共 27 项 · 2026-07</span>
+  <div class="progress-wrap">
+    <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+    <span id="progressText">已完成 0 / 27</span>
+  </div>
+  <div class="filters">
+    <span class="pill p0 on" data-f="pri" data-v="P0">P0 痛点</span>
+    <span class="pill p1 on" data-f="pri" data-v="P1">P1 重要</span>
+    <span class="pill p2 on" data-f="pri" data-v="P2">P2 加分</span>
+    <span style="color:var(--line)">|</span>
+    <span class="pill on" data-f="cat" data-v="home">首页</span>
+    <span class="pill on" data-f="cat" data-v="detail">详情页</span>
+    <span class="pill on" data-f="cat" data-v="search">搜索</span>
+    <span class="pill on" data-f="cat" data-v="settings">设置</span>
+    <span class="pill on" data-f="cat" data-v="nav">导航/新功能</span>
+    <input id="searchBox" type="text" placeholder="🔍 过滤关键词…">
+  </div>
+</header>
+
+<main>
+
+<div class="intro">
+  本清单基于对 <b>lib/ 全部页面源码的逐文件阅读</b>整理(首页、详情页、搜索、设置、黑名单、日志),不是泛泛的模板建议。
+  每一项都标注了 <b>改动位置</b>(具体文件)与线框图中的位置。勾选可记录进度(存在浏览器 localStorage,刷新不丢)。
+  <div class="legend">
+    <span><span class="dot" style="background:var(--p0)"></span><b>P0</b> 当前体验痛点 / 死代码,先做</span>
+    <span><span class="dot" style="background:var(--p1)"></span><b>P1</b> 明显提升体验的功能</span>
+    <span><span class="dot" style="background:var(--p2)"></span><b>P2</b> 锦上添花 / 需要更多投入</span>
+    <span style="margin-left:auto">工作量:<b>S</b>&lt;半天 · <b>M</b> 1~2天 · <b>L</b> 3天+</span>
+  </div>
+</div>
+
+<div class="toolbar">
+  <button onclick="toggleAll(true)">全部展开</button>
+  <button onclick="toggleAll(false)">全部折叠</button>
+  <button onclick="resetDone()">清空勾选</button>
+</div>
+
+<!-- ================================================================ -->
+<section data-sec="home">
+<h2>一、首页列表页(home_screen.dart)</h2>
+<p class="sec-desc">流量最大的页面。黄色标记 ①②③… 指向下方对应改进项,点击可跳转。</p>
+
+<div class="mock">
+<div class="cap">▼ 现状线框(点击黄色标记跳到对应项)</div>
+<pre>
+┌────────────────────────────────────────┐
+│ E621 VIEWER <span class="dim">By Baozbao</span>          ⚙ <a class="mk" href="#A8">⑧</a>   │ <span class="dim">← 副标题浅色主题下会消失</span>
+│ ┌────────────────────────────────────┐ │
+│ │ 🔍 搜索标签…                       │ │ <span class="dim">← 只有历史记录,无补全 → 见搜索区 C1</span>
+│ └────────────────────────────────────┘ │
+│ 排序: [高分][收藏][最新][随机] <a class="mk" href="#A7">⑦</a>      │ <span class="dim">← 没有评级(S/Q/E)过滤</span>
+│ ┌────────┐ ┌────────┐ ┌────────┐      │
+│ │        │ │        │ │        │ <a class="mk" href="#A1">①</a>    │ <span class="dim">← 固定宽高比,竖图被裁剪</span>
+│ │  img   │ │  img   │ │  img   │      │
+│ │        │ │        │ │        │ <a class="mk" href="#A2">②</a>    │ <span class="dim">← 卡片无任何信息(分数/类型/评级)</span>
+│ └────────┘ └────────┘ └────────┘      │
+│ ┌────────┐ ┌────────┐ ┌────────┐      │
+│ │ <span class="bad">加载中转圈</span> │ │        │ <a class="mk" href="#A4">④</a>    │ <span class="dim">← 无骨架屏;错误时只有一行字 <a class="mk" href="#A5">⑤</a></span>
+│ └────────┘ └────────┘ └────────┘      │
+│                                    <a class="mk" href="#A6">⑥</a>  │ <span class="dim">← 长列表无返回顶部</span>
+│      ◀   Page 3 / 750   ▶   <a class="mk" href="#A3">③</a>        │ <span class="dim">← 只有分页,不能无限滚动</span>
+└────────────────────────────────────────┘
+</pre>
+</div>
+
+<div class="mock">
+<div class="cap">▼ 改进后卡片示意(对应 ①②)</div>
+<pre>
+┌──────────────┐   <span class="good">▌</span> 左侧色条 = 评级:<span class="good">S 绿</span> / <span style="color:var(--p1)">Q 黄</span> / <span class="bad">E 红</span>
+│<span class="bad">▌</span>            │
+│    (原图     │   高度按图片真实宽高比 → 瀑布流
+│     比例)    │   (flutter_staggered_grid_view <span class="bad">已在依赖里,从未使用</span>)
+│              │
+│ <span class="good">▶WEBM</span>  ↑1.2k │   左下:类型徽标(动图/视频)
+└──────────────┘   右下:分数,长按卡片 → 快速预览大图
+</pre>
+</div>
+
+<details class="card" id="A1" data-pri="P0" data-cat="home">
+<summary><input type="checkbox" data-k="A1"><span class="cid">A1</span><span class="ctitle">瀑布流布局:竖图/横图不再被统一裁剪</span><span class="badge bp0">P0</span><span class="badge beff">M</span><span class="chev">▶</span></summary>
+<div class="cbody">
+  <h4>现状</h4>
+  <p>网格用 <code>SliverGrid + childAspectRatio: 100/previewHeight</code>,所有卡片同一宽高比,竖图被裁成方块、横图上下留黑边。而 <code>flutter_staggered_grid_view</code> <b>已经写进了 pubspec.yaml 却从未 import</b>(全库 grep 无引用)——等于装了没用。</p>
+  <h4>建议</h4>
+  <ul>
+    <li>用 <code>MasonryGridView</code>(该包提供)替换 SliverGrid,按 <code>post.sample.width/height</code> 计算每张卡片高度;</li>
+    <li>在「预览与网格设置」里加一个开关:<b>瀑布流 / 等高网格</b> 两种模式,保留现有用户习惯;</li>
+    <li>e621 API 每个 post 都带原始宽高,不需要等图片加载完就能排版,不会跳动。</li>
+  </ul>
+  <h4>改动位置</h4>
+  <p><span class="loc">lib/features/home/views/home_screen.dart</span>(SliverGrid 段)· <span class="loc">lib/features/home/widgets/post_card.dart</span> · <span class="loc">settings_provider.dart</span>(加布局模式字段)</p>
+</div>
+</details>
+
+<details class="card" id="A2" data-pri="P0" data-cat="home">
+<summary><input type="checkbox" data-k="A2"><span class="cid">A2</span><span class="ctitle">卡片信息层:评级色条 + 类型徽标 + 分数</span><span class="badge bp0">P0</span><span class="badge beff">S</span><span class="chev">▶</span></summary>
+<div class="cbody">
+  <h4>现状</h4>
+  <p>卡片只有一张裸图。用户在点进去之前无法知道:这是不是视频/GIF、分数高低、评级是 Safe 还是 Explicit——对这类内容浏览器 App 来说,评级可见性几乎是刚需。</p>
+  <h4>建议</h4>
+  <ul>
+    <li>卡片左缘 3px 色条表示 rating:<code>s</code> 绿 / <code>q</code> 黄 / <code>e</code> 红(e621 官网同款心智);</li>
+    <li>左下角小徽标:<code>▶ WEBM</code> / <code>GIF</code>(post.file.ext 已有);</li>
+    <li>右下角 <code>↑ score</code>,超过千用 <code>1.2k</code>;</li>
+    <li>全部叠加在图片上,用渐变底保证可读,不增加卡片高度。</li>
+  </ul>
+  <h4>改动位置</h4>
+  <p><span class="loc">lib/features/home/widgets/post_card.dart</span>(模型 <code>e621_post.dart</code> 里 score/rating/file.ext 字段都已存在,纯 UI 工作)</p>
+</div>
+</details>
+
+<details class="card" id="A3" data-pri="P1" data-cat="home">
+<summary><input type="checkbox" data-k="A3"><span class="cid">A3</span><span class="ctitle">无限滚动模式(与分页并存,可切换)</span><span class="badge bp1">P1</span><span class="badge beff">M</span><span class="chev">▶</span></summary>
+<div class="cbody">
+  <h4>现状</h4>
+  <p>翻页靠底部 <code>◀ Page n ▶</code> 按钮,每次整页替换 <code>posts</code>,翻页后滚动位置回顶。移动端主流浏览体验是无限滚动。</p>
+  <h4>建议</h4>
+  <ul>
+    <li>设置里加「浏览模式:无限滚动 / 分页」。无限滚动用 <code>ScrollController</code> 距底 800px 时追加下一页(state.posts 改为累加而非替换);</li>
+    <li>保留分页模式给"想直接跳到第 500 页"的重度用户——你已经做了跳页对话框,这是差异化优点,别删;</li>
+    <li>顺手修:跳页对话框里 <code>TextEditingController</code> 建在 builder 里没有 dispose(内存泄漏,上次清单第 8 项)。</li>
+  </ul>
+  <h4>改动位置</h4>
+  <p><span class="loc">lib/features/posts/providers/post_list_provider.dart</span>(loadPosts 增加 append 语义)· <span class="loc">home_screen.dart</span></p>
+</div>
+</details>
+
+<details class="card" id="A4" data-pri="P1" data-cat="home">
+<summary><input type="checkbox" data-k="A4"><span class="cid">A4</span><span class="ctitle">骨架屏(shimmer)替代中央转圈</span><span class="badge bp1">P1</span><span class="badge beff">S</span><span class="chev">▶</span></summary>
+<div class="cbody">
+  <h4>现状</h4>
+  <p>首次加载时整屏一个 <code>CircularProgressIndicator</code>;翻页时更糟——旧内容直接消失。</p>
+  <h4>建议</h4>
+  <p>加载时显示与网格同构的灰色占位卡(shimmer 微光动画),翻页时旧图之上盖半透明遮罩而非清空。体感速度提升非常明显,半天工作量。</p>
+  <h4>改动位置</h4>
+  <p><span class="loc">home_screen.dart</span>(isLoading 分支)· 新建 <span class="loc">lib/features/home/widgets/post_card_skeleton.dart</span></p>
+</div>
+</details>
+
+<details class="card" id="A5" data-pri="P1" data-cat="home">
+<summary><input type="checkbox" data-k="A5"><span class="cid">A5</span><span class="ctitle">错误/空状态页设计(含一键重试)</span><span class="badge bp1">P1</span><span class="badge beff">S</span><span class="chev">▶</span></summary>
+<div class="cbody">
+  <h4>现状</h4>
+  <p>报错时显示 <code>Text('Error: ${postState.error}')</code>——直接把 <code>DioException…</code> 原文甩给用户;搜索无结果时是一片空白。</p>
+  <h4>建议</h4>
+  <ul>
+    <li>错误态:图标 + 人话文案(区分「网络不通」「请求超时」「服务器 5xx」)+ <b>重试按钮</b>;</li>
+    <li>空结果态:「没有找到 <i>tag</i> 相关的作品」+ 提示检查黑名单是否过滤了全部结果(常见困惑!)+ 清除搜索按钮;</li>
+    <li>可以做成通用 <code>EmptyStateView(icon, title, action)</code> 组件,详情页/日志页复用。</li>
+  </ul>
+  <h4>改动位置</h4>
+  <p><span class="loc">home_screen.dart</span> · 新建 <span class="loc">lib/core/widgets/empty_state_view.dart</span></p>
+</div>
+</details>
+
+<details class="card" id="A6" data-pri="P1" data-cat="home">
+<summary><input type="checkbox" data-k="A6"><span class="cid">A6</span><span class="ctitle">返回顶部按钮 + 返回时恢复滚动位置</span><span class="badge bp1">P1</span><span class="badge beff">S</span><span class="chev">▶</span></summary>
+<div class="cbody">
+  <h4>建议</h4>
+  <ul>
+    <li>下滑超过 2 屏后浮现右下角「↑」FAB(与翻页栏错开);</li>
+    <li>从详情页返回首页时保持原滚动位置(把 <code>ScrollController</code> 提升 / 用 <code>PageStorageKey</code>)——目前 go_router push/pop 后网格状态依赖重建,长列表体验差。</li>
+  </ul>
+  <h4>改动位置</h4>
+  <p><span class="loc">home_screen.dart</span></p>
+</div>
+</details>
+
+<details class="card" id="A7" data-pri="P0" data-cat="home">
+<summary><input type="checkbox" data-k="A7"><span class="cid">A7</span><span class="ctitle">评级过滤 chips(S / Q / E)+ 更多排序项</span><span class="badge bp0">P0</span><span class="badge beff">S</span><span class="chev">▶</span></summary>
+<div class="cbody">
+  <h4>现状</h4>
+  <p>排序行只有 高分/收藏/最新/随机。想只看 Safe 内容必须手输 <code>rating:s</code>——大多数用户不知道这个语法。</p>
+  <h4>建议</h4>
+  <ul>
+    <li>排序行下加一行评级 FilterChip:<b>[全部] [S] [Q] [E]</b>(多选),选中后自动拼进查询(<code>rating:s</code> / <code>-rating:e</code>);</li>
+    <li>排序补充:<code>order:rank</code>(热度)、<code>order:comment_count</code>;</li>
+    <li>实现方式与现有 <code>_SortChip</code> 完全同构,把拼接逻辑放进 <code>PostListNotifier</code> 而不是 UI。</li>
+  </ul>
+  <h4>改动位置</h4>
+  <p><span class="loc">home_screen.dart</span>(chips 行)· <span class="loc">post_list_provider.dart</span>(state 加 ratingFilter 字段)</p>
+</div>
+</details>
+
+<details class="card" id="A8" data-pri="P0" data-cat="home">
+<summary><input type="checkbox" data-k="A8"><span class="cid">A8</span><span class="ctitle">修复:AppBar 副标题写死白色,浅色主题下不可见</span><span class="badge bp0">P0</span><span class="badge beff">S</span><span class="chev">▶</span></summary>
+<div class="cbody">
+  <h4>现状</h4>
+  <p><code>Text('By Baozbao', style: TextStyle(color: Colors.white.withAlpha(150)))</code>——颜色硬编码白色。App 有 themeMode 状态(见 D1),一旦切到浅色主题这行字直接隐形。</p>
+  <h4>建议</h4>
+  <p>改用 <code>Theme.of(context).colorScheme.onSurface.withAlpha(150)</code>;顺手把整个 App 里的硬编码 <code>Colors.xxx</code> 清一遍(设置页分区标题的 <code>Colors.blue</code> 同理)。</p>
+  <h4>改动位置</h4>
+  <p><span class="loc">home_screen.dart:156</span> · <span class="loc">settings_screen.dart</span>(分区标题)</p>
+</div>
+</details>
+</section>
+
+<!-- ================================================================ -->
+<section data-sec="detail">
+<h2>二、详情页(post_detail_screen.dart)</h2>
+<p class="sec-desc">决定用户"看得爽不爽"的页面,收益最高的投入区。</p>
+
+<div class="mock">
+<div class="cap">▼ 改进后详情页线框</div>
+<pre>
+┌────────────────────────────────────────┐
+│ ← #123456                    ⋮ <a class="mk" href="#B6">⑥</a>      │ <span class="dim">← 分享/浏览器打开/复制链接</span>
+│ ┌────────────────────────────────────┐ │
+│ │                                    │ │
+│ │        大图 / 视频                 │ │ <span class="dim">← 双击缩放·捏合 <a class="mk" href="#B1">①</a></span>
+│ │                                    │ │ <span class="dim">← 左右滑=上/下一张 <a class="mk" href="#B2">②</a></span>
+│ └────────────────────────────────────┘ │
+│  ↑ 1234   ♡ 收藏 <a class="mk" href="#B4">④</a>   ⬇ 下载 <a class="mk" href="#B5">⑤</a>        │
+│ ┌ 关联 ─────────────────────────────┐ │
+│ │ 📁 所属 Pool (3)  ·  🧩 父子图 (2) │ <a class="mk" href="#B7">⑦</a> │
+│ └────────────────────────────────────┘ │
+│ 标签 <a class="mk" href="#B3">③</a>                                │
+│  <span style="color:#ffb85c">■ 画师</span>  artist_name                  │ <span class="dim">← 按组分色,e621 API</span>
+│  <span style="color:#c792ea">■ 角色</span>  char_a  char_b               │ <span class="dim">   原生就分好组返回</span>
+│  <span style="color:#82aaff">■ 种族</span>  species_x                     │
+│  <span class="dim">■ 通用</span>  tag1 tag2 tag3 …             │
+│  每个标签:点击=搜索 · 长按=加入黑名单  │
+└────────────────────────────────────────┘
+</pre>
+</div>
+
+<details class="card" id="B1" data-pri="P0" data-cat="detail">
+<summary><input type="checkbox" data-k="B1"><span class="cid">B1</span><span class="ctitle">图片手势:捏合缩放 + 双击放大</span><span class="badge bp0">P0</span><span class="badge beff">S</span><span class="chev">▶</span></summary>
+<div class="cbody">
+  <h4>现状</h4>
+  <p>pubspec 里没有 <code>photo_view</code>,详情页图片不可缩放。看插画类内容不能放大看细节,是图片浏览 App 的第一硬伤。</p>
+  <h4>建议</h4>
+  <p>引入 <code>photo_view</code>(或纯 <code>InteractiveViewer</code> 零依赖方案),支持捏合、双击 2x、双指旋转可关。加载大图时先显示 sample 尺寸图,原图加载完平滑替换。</p>
+  <h4>改动位置</h4>
+  <p><span class="loc">lib/features/posts/views/post_detail_screen.dart</span> · <span class="loc">pubspec.yaml</span></p>
+</div>
+</details>
+
+<details class="card" id="B2" data-pri="P1" data-cat="detail">
+<summary><input type="checkbox" data-k="B2"><span class="cid">B2</span><span class="ctitle">左右滑动切换上一张 / 下一张</span><span class="badge bp1">P1</span><span class="badge beff">M</span><span class="chev">▶</span></summary>
+<div class="cbody">
+  <h4>现状</h4>
+  <p>看完一张必须返回列表再点下一张,浏览 40 张 = 80 次点击。</p>
+  <h4>建议</h4>
+  <ul>
+    <li>详情页改为 <code>PageView.builder</code>,以列表当前索引为 initialPage,数据源直接复用 <code>postListProvider</code> 里的 posts;</li>
+    <li>滑到列表末尾时自动触发加载下一页(与 A3 的追加逻辑共用);</li>
+    <li>注意与 B1 缩放手势冲突:放大状态下禁用 PageView 滑动(photo_view 有现成的 gallery 模式解决这个)。</li>
+  </ul>
+  <h4>改动位置</h4>
+  <p><span class="loc">post_detail_screen.dart</span> · <span class="loc">app_router.dart</span>(路由参数从单 post 改为索引)</p>
+</div>
+</details>
+
+<details class="card" id="B3" data-pri="P0" data-cat="detail">
+<summary><input type="checkbox" data-k="B3"><span class="cid">B3</span><span class="ctitle">标签按组分色 + 长按标签加入黑名单</span><span class="badge bp0">P0</span><span class="badge beff">S</span><span class="chev">▶</span></summary>
+<div class="cbody">
+  <h4>现状</h4>
+  <p>e621 API 返回的 tags 本来就分组(artist / character / species / copyright / general / meta),模型里也存了,但 UI 大概率平铺展示,找画师名要在几十个 tag 里肉眼扫。</p>
+  <h4>建议</h4>
+  <ul>
+    <li>按组分区展示,组名 + e621 官网同款配色(画师橙、角色紫、种族蓝、版权绿);</li>
+    <li>画师组置顶——这是用户最常用的跳转("看这个画师的其他图");</li>
+    <li>每个 tag chip:<b>点击 = 以此搜索</b>(已有?保留),<b>长按 = 弹菜单:加入黑名单 / 追加到当前搜索 / 复制</b>。配合黑名单功能形成闭环:看到不想看的内容 → 长按 tag → 再也不见。</li>
+  </ul>
+  <h4>改动位置</h4>
+  <p><span class="loc">post_detail_screen.dart</span> · 新建 <span class="loc">lib/features/posts/widgets/tag_group_section.dart</span></p>
+</div>
+</details>
+
+<details class="card" id="B4" data-pri="P1" data-cat="detail">
+<summary><input type="checkbox" data-k="B4"><span class="cid">B4</span><span class="ctitle">本地收藏(无需登录)+ 收藏页</span><span class="badge bp1">P1</span><span class="badge beff">M</span><span class="chev">▶</span></summary>
+<div class="cbody">
+  <h4>建议</h4>
+  <ul>
+    <li>详情页加 ♡ 按钮,收藏 = 把 post JSON 存本地(shared_preferences 起步,超过几百条迁 sqflite/hive);</li>
+    <li>新增「收藏」页(入口见 E1 底部导航):离线可看缩略图,点击进详情;</li>
+    <li>这是留存类功能里性价比最高的——不依赖账号系统(E4 做了之后可以再双向同步)。</li>
+  </ul>
+  <h4>改动位置</h4>
+  <p>新建 <span class="loc">lib/features/favorites/</span>(model + provider + view)· <span class="loc">post_detail_screen.dart</span>(按钮)</p>
+</div>
+</details>
+
+<details class="card" id="B5" data-pri="P1" data-cat="detail">
+<summary><input type="checkbox" data-k="B5"><span class="cid">B5</span><span class="ctitle">下载体验:进度条 + 完成通知 + 选择画质</span><span class="badge bp1">P1</span><span class="badge beff">M</span><span class="chev">▶</span></summary>
+<div class="cbody">
+  <h4>现状</h4>
+  <p><code>download_helper.dart</code> 用裸 <code>Dio()</code> 直接下载(不走全局拦截器,无 UA/日志),无进度反馈,大视频下载期间用户不知道发生了什么。</p>
+  <h4>建议</h4>
+  <ul>
+    <li>下载按钮点击后原位变环形进度(Dio <code>onReceiveProgress</code> 现成);</li>
+    <li>完成后 SnackBar「已保存到相册 · 查看」;失败给出原因和重试;</li>
+    <li>下载前弹选择:<b>原图 (7.2MB) / 采样图 (800KB)</b>——流量友好;</li>
+    <li>顺手把 Dio 实例改为注入 <code>dioProvider</code>(上次清单第 7 项)。</li>
+  </ul>
+  <h4>改动位置</h4>
+  <p><span class="loc">lib/features/posts/utils/download_helper.dart</span> · <span class="loc">post_detail_screen.dart</span></p>
+</div>
+</details>
+
+<details class="card" id="B6" data-pri="P2" data-cat="detail">
+<summary><input type="checkbox" data-k="B6"><span class="cid">B6</span><span class="ctitle">分享 / 在浏览器打开 / 复制链接</span><span class="badge bp2">P2</span><span class="badge beff">S</span><span class="chev">▶</span></summary>
+<div class="cbody">
+  <h4>建议</h4>
+  <p>AppBar 右上 <code>⋮</code> 菜单:复制帖子链接、系统分享(<code>share_plus</code>)、在浏览器打开(<code>url_launcher</code>,pubspec 目前两者都没有)。实现成本极低,补齐"浏览器 App 三件套"。</p>
+  <h4>改动位置</h4>
+  <p><span class="loc">post_detail_screen.dart</span> · <span class="loc">pubspec.yaml</span></p>
+</div>
+</details>
+
+<details class="card" id="B7" data-pri="P2" data-cat="detail">
+<summary><input type="checkbox" data-k="B7"><span class="cid">B7</span><span class="ctitle">关联内容:Pool / 父子图跳转</span><span class="badge bp2">P2</span><span class="badge beff">M</span><span class="chev">▶</span></summary>
+<div class="cbody">
+  <h4>建议</h4>
+  <p>post 数据里有 <code>relationships.parent_id / children</code> 和 <code>pools</code>。漫画/图集类内容(pool)是 e621 的高频消费形态,详情页出一条「📁 所属 Pool · 第 3/24 页」的入口,点进去按 pool 顺序翻页(复用 B2 的 PageView)。</p>
+  <h4>改动位置</h4>
+  <p><span class="loc">post_detail_screen.dart</span> · <span class="loc">post_repository.dart</span>(加 pool 接口)· 模型补字段</p>
+</div>
+</details>
+</section>
+
+<!-- ================================================================ -->
+<section data-sec="search">
+<h2>三、搜索(search_bar_widget.dart / search_repository.dart)</h2>
+<p class="sec-desc">e621 是纯标签驱动的站点,搜索体验 = 产品核心竞争力。</p>
+
+<div class="mock">
+<div class="cap">▼ 改进后搜索面板线框</div>
+<pre>
+┌────────────────────────────────────────┐
+│ 🔍 wol_                            ✕   │
+│ ────────────────────────────────────── │
+│  <span class="good">wolf</span>          <span class="dim">species · 892k 帖</span>  <a class="mk" href="#C1">①</a>  │ <span class="dim">← 输入即补全(API 已有</span>
+│  <span class="good">wolf_girl</span>     <span class="dim">general · 12k 帖</span>       │ <span class="dim">   e621_tag 模型也建好了!)</span>
+│  <span class="good">wolfy-nail</span>    <span style="color:#ffb85c">artist · 1.2k 帖</span>      │
+│ ────────────────────────────────────── │
+│  ⚙ 高级筛选 <a class="mk" href="#C2">②</a>                          │
+│  评级 [S][Q][E]  分数 ≥ [100▾]        │
+│  类型 [图片][动图][视频]               │
+│ ────────────────────────────────────── │
+│  ⭐ 已保存 <a class="mk" href="#C3">③</a>: wolf order:score        │
+│  🕐 历史: canine   dragon  ✕           │
+└────────────────────────────────────────┘
+</pre>
+</div>
+
+<details class="card" id="C1" data-pri="P0" data-cat="search">
+<summary><input type="checkbox" data-k="C1"><span class="cid">C1</span><span class="ctitle">标签自动补全(基础设施已就位,只差接线)</span><span class="badge bp0">P0</span><span class="badge beff">M</span><span class="chev">▶</span></summary>
+<div class="cbody">
+  <h4>现状</h4>
+  <p>搜索建议只显示历史记录。但项目里 <b><code>e621_tag.dart</code>(freezed 模型)和 <code>search_repository.dart</code> 已经存在</b>——补全的地基都打好了,SearchAnchor 的 <code>suggestionsBuilder</code> 却没接上,非常可惜。</p>
+  <h4>建议</h4>
+  <ul>
+    <li>在 <code>suggestionsBuilder</code> 里对<b>光标所在的最后一个词</b>调 e621 tags autocomplete 接口(300ms debounce);</li>
+    <li>建议项显示:标签名 + 分类颜色 + 帖子数(格式 <code>892k</code>);</li>
+    <li>点击补全 = 替换最后一个词并追加空格,而非覆盖整个输入(支持多标签组合搜索的关键细节);</li>
+    <li>无输入时回落到现在的历史记录列表。</li>
+  </ul>
+  <h4>改动位置</h4>
+  <p><span class="loc">lib/features/home/widgets/search_bar_widget.dart</span> · <span class="loc">lib/features/search/repositories/search_repository.dart</span></p>
+</div>
+</details>
+
+<details class="card" id="C2" data-pri="P1" data-cat="search">
+<summary><input type="checkbox" data-k="C2"><span class="cid">C2</span><span class="ctitle">高级筛选面板:不用记语法的搜索构建器</span><span class="badge bp1">P1</span><span class="badge beff">M</span><span class="chev">▶</span></summary>
+<div class="cbody">
+  <h4>建议</h4>
+  <p>搜索视图底部一块可折叠面板,用控件生成语法:评级多选(<code>rating:</code>)、最低分(<code>score:&gt;=100</code>)、类型(<code>type:webm/gif</code>)、时间范围(<code>date:</code>)。面板选择实时回显为最终查询字符串,既能用又能"学会语法"。与 A7 的快捷 chips 共用拼接逻辑。</p>
+  <h4>改动位置</h4>
+  <p>新建 <span class="loc">lib/features/search/widgets/advanced_filter_panel.dart</span> · <span class="loc">post_list_provider.dart</span></p>
+</div>
+</details>
+
+<details class="card" id="C3" data-pri="P2" data-cat="search">
+<summary><input type="checkbox" data-k="C3"><span class="cid">C3</span><span class="ctitle">保存搜索 / 关注标签</span><span class="badge bp2">P2</span><span class="badge beff">S</span><span class="chev">▶</span></summary>
+<div class="cbody">
+  <h4>建议</h4>
+  <p>历史记录之上加「⭐ 已保存」分组:任意历史项左滑或长按 → 置顶保存(永不被历史淘汰)。重度用户往往固定看那几个组合(<code>artist_x order:id</code>),现在每次要重敲。存储结构与 search_history_provider 同构,几小时工作量。</p>
+  <h4>改动位置</h4>
+  <p><span class="loc">lib/features/search/providers/search_history_provider.dart</span> · <span class="loc">search_bar_widget.dart</span></p>
+</div>
+</details>
+</section>
+
+<!-- ================================================================ -->
+<section data-sec="settings">
+<h2>四、设置(settings_screen.dart)</h2>
+<p class="sec-desc">现状截图式线框——两处"名不副实"需要优先处理。</p>
+
+<div class="mock">
+<div class="cap">▼ 现状线框(标注问题)</div>
+<pre>
+┌────────────────────────────────────────┐
+│           APP SETTINGS                 │
+│ <span style="color:#4f8cff">通用设置</span>                               │
+│  🌐 语言        中文 (简体中文)    <a class="mk" href="#D2">②</a>  │ <span class="bad">← 死项:没有 onTap,点了没反应</span>
+│  ⚠ Change site/host  e621.net     <a class="mk" href="#D3">③</a>  │ <span class="bad">← 点一下立刻切换,无确认无解释</span>
+│  🚫 启用黑名单              [ON]       │
+│  ✏ 编辑黑名单                   ›  <a class="mk" href="#D4">④</a>  │
+│                                        │
+│  <span class="bad">✘ 缺失:主题切换</span>                  <a class="mk" href="#D1">①</a>  │ <span class="bad">← themeMode 状态和 update 方法</span>
+│                                        │ <span class="bad">   都写好了,但没有任何 UI 入口!</span>
+│ <span style="color:#4f8cff">显示设置</span>                               │
+│  ▦ 预览与网格设置               ›      │
+│ <span style="color:#4f8cff">开发者选项</span>                             │
+│  🐛 系统日志                    ›      │
+│  <span class="dim">✘ 缺失:缓存管理 / 关于页</span>        <a class="mk" href="#D5">⑤</a>  │
+└────────────────────────────────────────┘
+</pre>
+</div>
+
+<details class="card" id="D1" data-pri="P0" data-cat="settings">
+<summary><input type="checkbox" data-k="D1"><span class="cid">D1</span><span class="ctitle">补上主题切换入口(功能已写好,UI 缺失=死代码)</span><span class="badge bp0">P0</span><span class="badge beff">S</span><span class="chev">▶</span></summary>
+<div class="cbody">
+  <h4>现状</h4>
+  <p><code>AppSettings.themeMode</code>、持久化、<code>updateThemeMode()</code> 全部已实现,<b>但全 lib/ 无任何 UI 调用它</b>(grep 验证过)。用户永远停在深色模式,这段代码等于白写。</p>
+  <h4>建议</h4>
+  <p>「显示设置」区加一项「外观:跟随系统 / 浅色 / 深色」,用 <code>SegmentedButton</code> 三选一。做之前先修 A8,否则切浅色会暴露一批硬编码颜色。</p>
+  <h4>改动位置</h4>
+  <p><span class="loc">settings_screen.dart</span>(纯 UI,~20 行)</p>
+</div>
+</details>
+
+<details class="card" id="D2" data-pri="P0" data-cat="settings">
+<summary><input type="checkbox" data-k="D2"><span class="cid">D2</span><span class="ctitle">处理"语言"死项:要么实现,要么移除</span><span class="badge bp0">P0</span><span class="badge beff">S</span><span class="chev">▶</span></summary>
+<div class="cbody">
+  <h4>现状</h4>
+  <p>「语言」ListTile 没有 <code>onTap</code>,是个纯摆设;而实际 UI 是中英混排(APP SETTINGS / 通用设置 / Change site/host 同屏)。</p>
+  <h4>建议</h4>
+  <p>两条路选一:<b>(a)</b> 短期先删掉这个死项,同时把全 App 文案统一为中文(集中到 strings.dart,上次清单第 11 项);<b>(b)</b> 认真做 l10n(<code>flutter_localizations</code> + arb),这项就变成真的语言切换。个人项目推荐 (a),需要时再升级 (b)。</p>
+  <h4>改动位置</h4>
+  <p><span class="loc">settings_screen.dart:25-29</span> · 全局文案</p>
+</div>
+</details>
+
+<details class="card" id="D3" data-pri="P0" data-cat="settings">
+<summary><input type="checkbox" data-k="D3"><span class="cid">D3</span><span class="ctitle">站点切换改为明确的选择对话框</span><span class="badge bp0">P0</span><span class="badge beff">S</span><span class="chev">▶</span></summary>
+<div class="cbody">
+  <h4>现状</h4>
+  <p>标题是英文 "Change site/host",图标是 ⚠ warning,行为是<b>点一下立即切换</b> e621↔e926——没有确认、没有解释两个站的区别,误触就换了整个内容源。</p>
+  <h4>建议</h4>
+  <ul>
+    <li>改为对话框/底部弹层二选一:<b>e621.net</b>(完整内容)/ <b>e926.net</b>(仅 Safe 内容),当前项打勾;</li>
+    <li>切换后 SnackBar 提示已生效并自动刷新列表;</li>
+    <li>图标换 <code>Icons.public</code>,标题「内容源」。</li>
+  </ul>
+  <h4>改动位置</h4>
+  <p><span class="loc">settings_screen.dart:30-38</span></p>
+</div>
+</details>
+
+<details class="card" id="D4" data-pri="P1" data-cat="settings">
+<summary><input type="checkbox" data-k="D4"><span class="cid">D4</span><span class="ctitle">黑名单增强:chips 展示 + 批量导入 + 推荐预设</span><span class="badge bp1">P1</span><span class="badge beff">M</span><span class="chev">▶</span></summary>
+<div class="cbody">
+  <h4>现状</h4>
+  <p>黑名单页是 ListView 一行一个 tag + 「管理」模式删除,添加只能单个输入。</p>
+  <h4>建议</h4>
+  <ul>
+    <li>改为 <code>Wrap</code> chips 流式布局,每个 chip 带 ✕,不需要「管理」双态;</li>
+    <li>添加框支持空格/逗号分隔批量粘贴;</li>
+    <li>提供一键导入 e621 默认黑名单预设(官网默认屏蔽集);</li>
+    <li>输入时接 C1 的补全,避免拼错 tag 导致黑名单无效;</li>
+    <li>与 B3 的「长按 tag 加入黑名单」互通。</li>
+  </ul>
+  <h4>改动位置</h4>
+  <p><span class="loc">lib/features/settings/views/blacklist_screen.dart</span> · <span class="loc">settings_provider.dart</span>(addBlacklistTags 批量方法)</p>
+</div>
+</details>
+
+<details class="card" id="D5" data-pri="P2" data-cat="settings">
+<summary><input type="checkbox" data-k="D5"><span class="cid">D5</span><span class="ctitle">缓存管理 + 关于页</span><span class="badge bp2">P2</span><span class="badge beff">S</span><span class="chev">▶</span></summary>
+<div class="cbody">
+  <h4>建议</h4>
+  <ul>
+    <li>「存储」分区:显示 <code>cached_network_image</code> 缓存占用(遍历 cache 目录求和),一键清除;图片 App 缓存轻松上 GB,用户需要这个开关;</li>
+    <li>「关于」页:版本号(<code>package_info_plus</code>)、开源许可(<code>showLicensePage</code> 一行就有)、项目链接。</li>
+  </ul>
+  <h4>改动位置</h4>
+  <p><span class="loc">settings_screen.dart</span> · 新建 <span class="loc">lib/features/settings/views/about_screen.dart</span></p>
+</div>
+</details>
+</section>
+
+<!-- ================================================================ -->
+<section data-sec="nav">
+<h2>五、导航结构与新功能</h2>
+<p class="sec-desc">从"单页列表 + 设置"升级为多入口 App 的骨架。</p>
+
+<div class="mock">
+<div class="cap">▼ 建议的底部导航(承载 B4 / E2 / E3 的入口)</div>
+<pre>
+┌────────────────────────────────────────┐
+│                                        │
+│              (各页内容)                │
+│                                        │
+├────────────────────────────────────────┤
+│   🏠        🔥        ♡        ⚙      │
+│  浏览      热门      收藏      设置    │
+│  <a class="mk" href="#E1">E1</a>       <a class="mk" href="#E2">E2</a>       <a class="mk" href="#B4">B4</a>       <span class="dim">现有</span>    │
+└────────────────────────────────────────┘
+  <span class="dim">go_router 用 StatefulShellRoute 实现,各 tab 独立导航栈</span>
+</pre>
+</div>
+
+<details class="card" id="E1" data-pri="P1" data-cat="nav">
+<summary><input type="checkbox" data-k="E1"><span class="cid">E1</span><span class="ctitle">底部导航栏(浏览 / 热门 / 收藏 / 设置)</span><span class="badge bp1">P1</span><span class="badge beff">M</span><span class="chev">▶</span></summary>
+<div class="cbody">
+  <h4>现状</h4>
+  <p>App 只有一个首页,设置藏在 AppBar 右上角小图标里。随着收藏(B4)、热门(E2)等页面加入,需要一级导航承载。</p>
+  <h4>建议</h4>
+  <ul>
+    <li>go_router 的 <code>StatefulShellRoute.indexedStack</code>:4 个 tab 各自独立导航栈、切换不丢状态(首页滚动位置天然保住,顺带解决 A6 一半);</li>
+    <li>注意与首页现有的底部分页栏叠放关系:分页栏放在 NavigationBar 之上,或无限滚动模式(A3)下自动隐藏;</li>
+    <li>先做 3 个 tab(浏览/收藏/设置)也成立,热门后补。</li>
+  </ul>
+  <h4>改动位置</h4>
+  <p><span class="loc">lib/core/routing/app_router.dart</span>(结构性改动)· <span class="loc">home_screen.dart</span></p>
+</div>
+</details>
+
+<details class="card" id="E2" data-pri="P1" data-cat="nav">
+<summary><input type="checkbox" data-k="E2"><span class="cid">E2</span><span class="ctitle">「热门」页:日榜 / 周榜 / 月榜</span><span class="badge bp1">P1</span><span class="badge beff">S</span><span class="chev">▶</span></summary>
+<div class="cbody">
+  <h4>建议</h4>
+  <p>e621 有现成的 <code>/popular.json</code>(scale=day/week/month)。页面 = 顶部三个 Tab + 复用现有网格与 PostCard,几乎纯组装工作。解决"打开 App 不知道搜什么"的冷启动问题——默认落地页甚至可以就是它。</p>
+  <h4>改动位置</h4>
+  <p>新建 <span class="loc">lib/features/popular/</span> · <span class="loc">post_repository.dart</span>(加 getPopular)· <span class="loc">app_router.dart</span></p>
+</div>
+</details>
+
+<details class="card" id="E3" data-pri="P2" data-cat="nav">
+<summary><input type="checkbox" data-k="E3"><span class="cid">E3</span><span class="ctitle">浏览历史页</span><span class="badge bp2">P2</span><span class="badge beff">S</span><span class="chev">▶</span></summary>
+<div class="cbody">
+  <h4>建议</h4>
+  <p>详情页每次打开记录 post(去重、上限 200 条、可关闭可清空)。"昨天看到一张图找不到了"是真实高频场景。入口放设置页或收藏页顶部 tab,不必占一级导航。存储实现直接参考 B4 收藏的方案。</p>
+  <h4>改动位置</h4>
+  <p>新建 <span class="loc">lib/features/history/</span> · <span class="loc">post_detail_screen.dart</span>(埋记录点)</p>
+</div>
+</details>
+
+<details class="card" id="E4" data-pri="P2" data-cat="nav">
+<summary><input type="checkbox" data-k="E4"><span class="cid">E4</span><span class="ctitle">e621 账号登录(API Key):同步收藏 / 投票 / 云端黑名单</span><span class="badge bp2">P2</span><span class="badge beff">L</span><span class="chev">▶</span></summary>
+<div class="cbody">
+  <h4>建议</h4>
+  <ul>
+    <li>e621 支持 用户名 + API Key 的 HTTP Basic 认证(用户在官网个人设置页生成);</li>
+    <li>登录后解锁:云端收藏(与 B4 本地收藏合并)、顶/踩投票、拉取账号黑名单、查看自己的收藏列表;</li>
+    <li>Key 属敏感凭据,用 <code>flutter_secure_storage</code> 存,<b>不要</b>放 shared_preferences;</li>
+    <li>这是本清单里唯一的 L 级项,建议放最后;做完它 App 就从"浏览器"变成"客户端"。</li>
+  </ul>
+  <h4>改动位置</h4>
+  <p>新建 <span class="loc">lib/features/auth/</span> · <span class="loc">api_client.dart</span>(注入认证头)· <span class="loc">settings_screen.dart</span>(账号分区)</p>
+</div>
+</details>
+</section>
+
+<!-- ================================================================ -->
+<div class="intro" style="margin-top:36px">
+  <b>🗺 建议的实施顺序(产品视角)</b><br>
+  <b>第一批 · 修死角(1~2 天):</b> D1 主题入口 → A8 硬编码颜色 → D2 语言死项 → D3 站点切换 —— 全是 S 级,消灭"名不副实"。<br>
+  <b>第二批 · 核心浏览体验(1 周):</b> A2 卡片信息 → A1 瀑布流 → B1 缩放 → B3 标签分组 → A7 评级过滤 —— 做完后 App 的"看图"主链路达到主流水准。<br>
+  <b>第三批 · 粘性功能(1~2 周):</b> C1 补全 → A3 无限滚动 → B2 滑动切换 → B4 收藏 → E1 底部导航 → E2 热门。<br>
+  <b>第四批 · 按兴趣自选:</b> 其余 P2 项。每完成一项回来打勾 ✓。
+</div>
+
+<footer>FlutterE621Viewer 可改进清单 · 由 Claude Code 基于源码分析生成 · 勾选进度保存在本机浏览器</footer>
+</main>
+
+<script>
+(function(){
+  const KEY='e621viewer_checklist_v1';
+  const state=JSON.parse(localStorage.getItem(KEY)||'{}');
+  // 已由 Claude Code 实现的 21 项 P0/P1(2026-07),默认勾选;未做的 P2: B6 B7 C3 D5 E3 E4
+  const DONE=['A1','A2','A3','A4','A5','A6','A7','A8',
+              'B1','B2','B3','B4','B5','C1','C2',
+              'D1','D2','D3','D4','E1','E2'];
+  DONE.forEach(k=>state[k]=true);
+  localStorage.setItem(KEY,JSON.stringify(state));
+
+  // ---------- 主题切换 ----------
+  const THEME_KEY='e621viewer_theme';
+  const themeBtns=[...document.querySelectorAll('[data-theme-btn]')];
+  function applyTheme(t){
+    if(t==='dark') document.documentElement.removeAttribute('data-theme');
+    else document.documentElement.setAttribute('data-theme',t);
+    themeBtns.forEach(b=>b.classList.toggle('on',b.dataset.themeBtn===t));
+  }
+  themeBtns.forEach(b=>b.addEventListener('click',()=>{
+    const t=b.dataset.themeBtn;
+    localStorage.setItem(THEME_KEY,t);
+    applyTheme(t);
+  }));
+  applyTheme(localStorage.getItem(THEME_KEY)||'dark');
+  const boxes=[...document.querySelectorAll('input[type=checkbox][data-k]')];
+  const fill=document.getElementById('progressFill');
+  const ptext=document.getElementById('progressText');
+
+  function save(){localStorage.setItem(KEY,JSON.stringify(state))}
+  function refresh(){
+    let done=0;
+    boxes.forEach(b=>{
+      const on=!!state[b.dataset.k];
+      b.checked=on;
+      b.closest('.card').classList.toggle('done',on);
+      if(on)done++;
+    });
+    fill.style.width=(done/boxes.length*100)+'%';
+    ptext.textContent='已完成 '+done+' / '+boxes.length;
+  }
+  boxes.forEach(b=>{
+    b.addEventListener('click',e=>e.stopPropagation());
+    b.addEventListener('change',()=>{state[b.dataset.k]=b.checked; save(); refresh();});
+  });
+
+  // 筛选
+  const pills=[...document.querySelectorAll('.pill')];
+  const search=document.getElementById('searchBox');
+  function applyFilter(){
+    const pri=new Set(pills.filter(p=>p.dataset.f==='pri'&&p.classList.contains('on')).map(p=>p.dataset.v));
+    const cat=new Set(pills.filter(p=>p.dataset.f==='cat'&&p.classList.contains('on')).map(p=>p.dataset.v));
+    const q=search.value.trim().toLowerCase();
+    document.querySelectorAll('.card').forEach(c=>{
+      let show=pri.has(c.dataset.pri)&&cat.has(c.dataset.cat);
+      if(show&&q) show=c.textContent.toLowerCase().includes(q);
+      c.classList.toggle('hidden',!show);
+    });
+    document.querySelectorAll('section').forEach(s=>{
+      const any=[...s.querySelectorAll('.card')].some(c=>!c.classList.contains('hidden'));
+      s.style.display=any?'':'none';
+    });
+  }
+  pills.forEach(p=>p.addEventListener('click',()=>{p.classList.toggle('on');applyFilter();}));
+  search.addEventListener('input',applyFilter);
+
+  window.toggleAll=open=>document.querySelectorAll('details.card').forEach(d=>d.open=open);
+  window.resetDone=()=>{
+    if(!confirm('清空所有勾选进度?'))return;
+    Object.keys(state).forEach(k=>delete state[k]); save(); refresh();
+  };
+
+  // 点击线框图标记 → 打开并高亮对应卡片
+  document.querySelectorAll('a.mk').forEach(a=>{
+    a.addEventListener('click',()=>{
+      const t=document.querySelector(a.getAttribute('href'));
+      if(t)t.open=true;
+    });
+  });
+
+  refresh();
+})();
+</script>
+</body>
+</html>

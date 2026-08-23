@@ -13,5 +13,6 @@ abstract class E621Tag with _$E621Tag {
     @JsonKey(name: 'antecedent_name') String? antecedentName,
   }) = _E621Tag;
 
-  factory E621Tag.fromJson(Map<String, dynamic> json) => _$E621TagFromJson(json);
+  factory E621Tag.fromJson(Map<String, dynamic> json) =>
+      _$E621TagFromJson(json);
 }

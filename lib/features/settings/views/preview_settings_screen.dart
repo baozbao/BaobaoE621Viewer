@@ -11,9 +11,7 @@ class PreviewSettingsScreen extends ConsumerWidget {
     final notifier = ref.read(settingsProvider.notifier);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('预览与网格设置'),
-      ),
+      appBar: AppBar(title: const Text('预览与网格设置')),
       body: ListView(
         children: [
           Padding(
@@ -39,7 +37,7 @@ class PreviewSettingsScreen extends ConsumerWidget {
             label: settings.previewHeight.toString(),
             onChanged: (val) => notifier.updatePreviewHeight(val.toInt()),
           ),
-          
+
           ListTile(
             title: const Text('每行作品数 (Works per Row)'),
             subtitle: Text('设置每行显示的作品数 (2-9)'),

@@ -284,7 +284,7 @@ as List<E621Post>,
 /// @nodoc
 mixin _$E621Post {
 
- int get id;@JsonKey(name: 'created_at') String get createdAt; PostFile get file; PostPreview get preview; PostScore get score; PostTags get tags; String get rating;@JsonKey(name: 'fav_count') int get favCount; String get description; List<String> get sources;@JsonKey(name: 'approver_id') int? get approverId; PostFlags get flags;
+ int get id;@JsonKey(name: 'created_at') String get createdAt; PostFile get file; PostPreview get preview; PostSample? get sample; PostScore get score; PostTags get tags; String get rating;@JsonKey(name: 'fav_count') int get favCount; String get description; List<String> get sources;@JsonKey(name: 'approver_id') int? get approverId; PostFlags get flags;
 /// Create a copy of E621Post
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -297,16 +297,16 @@ $E621PostCopyWith<E621Post> get copyWith => _$E621PostCopyWithImpl<E621Post>(thi
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is E621Post&&(identical(other.id, id) || other.id == id)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.file, file) || other.file == file)&&(identical(other.preview, preview) || other.preview == preview)&&(identical(other.score, score) || other.score == score)&&(identical(other.tags, tags) || other.tags == tags)&&(identical(other.rating, rating) || other.rating == rating)&&(identical(other.favCount, favCount) || other.favCount == favCount)&&(identical(other.description, description) || other.description == description)&&const DeepCollectionEquality().equals(other.sources, sources)&&(identical(other.approverId, approverId) || other.approverId == approverId)&&(identical(other.flags, flags) || other.flags == flags));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is E621Post&&(identical(other.id, id) || other.id == id)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.file, file) || other.file == file)&&(identical(other.preview, preview) || other.preview == preview)&&(identical(other.sample, sample) || other.sample == sample)&&(identical(other.score, score) || other.score == score)&&(identical(other.tags, tags) || other.tags == tags)&&(identical(other.rating, rating) || other.rating == rating)&&(identical(other.favCount, favCount) || other.favCount == favCount)&&(identical(other.description, description) || other.description == description)&&const DeepCollectionEquality().equals(other.sources, sources)&&(identical(other.approverId, approverId) || other.approverId == approverId)&&(identical(other.flags, flags) || other.flags == flags));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,createdAt,file,preview,score,tags,rating,favCount,description,const DeepCollectionEquality().hash(sources),approverId,flags);
+int get hashCode => Object.hash(runtimeType,id,createdAt,file,preview,sample,score,tags,rating,favCount,description,const DeepCollectionEquality().hash(sources),approverId,flags);
 
 @override
 String toString() {
-  return 'E621Post(id: $id, createdAt: $createdAt, file: $file, preview: $preview, score: $score, tags: $tags, rating: $rating, favCount: $favCount, description: $description, sources: $sources, approverId: $approverId, flags: $flags)';
+  return 'E621Post(id: $id, createdAt: $createdAt, file: $file, preview: $preview, sample: $sample, score: $score, tags: $tags, rating: $rating, favCount: $favCount, description: $description, sources: $sources, approverId: $approverId, flags: $flags)';
 }
 
 
@@ -317,11 +317,11 @@ abstract mixin class $E621PostCopyWith<$Res>  {
   factory $E621PostCopyWith(E621Post value, $Res Function(E621Post) _then) = _$E621PostCopyWithImpl;
 @useResult
 $Res call({
- int id,@JsonKey(name: 'created_at') String createdAt, PostFile file, PostPreview preview, PostScore score, PostTags tags, String rating,@JsonKey(name: 'fav_count') int favCount, String description, List<String> sources,@JsonKey(name: 'approver_id') int? approverId, PostFlags flags
+ int id,@JsonKey(name: 'created_at') String createdAt, PostFile file, PostPreview preview, PostSample? sample, PostScore score, PostTags tags, String rating,@JsonKey(name: 'fav_count') int favCount, String description, List<String> sources,@JsonKey(name: 'approver_id') int? approverId, PostFlags flags
 });
 
 
-$PostFileCopyWith<$Res> get file;$PostPreviewCopyWith<$Res> get preview;$PostScoreCopyWith<$Res> get score;$PostTagsCopyWith<$Res> get tags;$PostFlagsCopyWith<$Res> get flags;
+$PostFileCopyWith<$Res> get file;$PostPreviewCopyWith<$Res> get preview;$PostSampleCopyWith<$Res>? get sample;$PostScoreCopyWith<$Res> get score;$PostTagsCopyWith<$Res> get tags;$PostFlagsCopyWith<$Res> get flags;
 
 }
 /// @nodoc
@@ -334,13 +334,14 @@ class _$E621PostCopyWithImpl<$Res>
 
 /// Create a copy of E621Post
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? createdAt = null,Object? file = null,Object? preview = null,Object? score = null,Object? tags = null,Object? rating = null,Object? favCount = null,Object? description = null,Object? sources = null,Object? approverId = freezed,Object? flags = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? createdAt = null,Object? file = null,Object? preview = null,Object? sample = freezed,Object? score = null,Object? tags = null,Object? rating = null,Object? favCount = null,Object? description = null,Object? sources = null,Object? approverId = freezed,Object? flags = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as String,file: null == file ? _self.file : file // ignore: cast_nullable_to_non_nullable
 as PostFile,preview: null == preview ? _self.preview : preview // ignore: cast_nullable_to_non_nullable
-as PostPreview,score: null == score ? _self.score : score // ignore: cast_nullable_to_non_nullable
+as PostPreview,sample: freezed == sample ? _self.sample : sample // ignore: cast_nullable_to_non_nullable
+as PostSample?,score: null == score ? _self.score : score // ignore: cast_nullable_to_non_nullable
 as PostScore,tags: null == tags ? _self.tags : tags // ignore: cast_nullable_to_non_nullable
 as PostTags,rating: null == rating ? _self.rating : rating // ignore: cast_nullable_to_non_nullable
 as String,favCount: null == favCount ? _self.favCount : favCount // ignore: cast_nullable_to_non_nullable
@@ -368,6 +369,18 @@ $PostPreviewCopyWith<$Res> get preview {
   
   return $PostPreviewCopyWith<$Res>(_self.preview, (value) {
     return _then(_self.copyWith(preview: value));
+  });
+}/// Create a copy of E621Post
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$PostSampleCopyWith<$Res>? get sample {
+    if (_self.sample == null) {
+    return null;
+  }
+
+  return $PostSampleCopyWith<$Res>(_self.sample!, (value) {
+    return _then(_self.copyWith(sample: value));
   });
 }/// Create a copy of E621Post
 /// with the given fields replaced by the non-null parameter values.
@@ -478,10 +491,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id, @JsonKey(name: 'created_at')  String createdAt,  PostFile file,  PostPreview preview,  PostScore score,  PostTags tags,  String rating, @JsonKey(name: 'fav_count')  int favCount,  String description,  List<String> sources, @JsonKey(name: 'approver_id')  int? approverId,  PostFlags flags)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id, @JsonKey(name: 'created_at')  String createdAt,  PostFile file,  PostPreview preview,  PostSample? sample,  PostScore score,  PostTags tags,  String rating, @JsonKey(name: 'fav_count')  int favCount,  String description,  List<String> sources, @JsonKey(name: 'approver_id')  int? approverId,  PostFlags flags)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _E621Post() when $default != null:
-return $default(_that.id,_that.createdAt,_that.file,_that.preview,_that.score,_that.tags,_that.rating,_that.favCount,_that.description,_that.sources,_that.approverId,_that.flags);case _:
+return $default(_that.id,_that.createdAt,_that.file,_that.preview,_that.sample,_that.score,_that.tags,_that.rating,_that.favCount,_that.description,_that.sources,_that.approverId,_that.flags);case _:
   return orElse();
 
 }
@@ -499,10 +512,10 @@ return $default(_that.id,_that.createdAt,_that.file,_that.preview,_that.score,_t
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id, @JsonKey(name: 'created_at')  String createdAt,  PostFile file,  PostPreview preview,  PostScore score,  PostTags tags,  String rating, @JsonKey(name: 'fav_count')  int favCount,  String description,  List<String> sources, @JsonKey(name: 'approver_id')  int? approverId,  PostFlags flags)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id, @JsonKey(name: 'created_at')  String createdAt,  PostFile file,  PostPreview preview,  PostSample? sample,  PostScore score,  PostTags tags,  String rating, @JsonKey(name: 'fav_count')  int favCount,  String description,  List<String> sources, @JsonKey(name: 'approver_id')  int? approverId,  PostFlags flags)  $default,) {final _that = this;
 switch (_that) {
 case _E621Post():
-return $default(_that.id,_that.createdAt,_that.file,_that.preview,_that.score,_that.tags,_that.rating,_that.favCount,_that.description,_that.sources,_that.approverId,_that.flags);case _:
+return $default(_that.id,_that.createdAt,_that.file,_that.preview,_that.sample,_that.score,_that.tags,_that.rating,_that.favCount,_that.description,_that.sources,_that.approverId,_that.flags);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -519,10 +532,10 @@ return $default(_that.id,_that.createdAt,_that.file,_that.preview,_that.score,_t
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id, @JsonKey(name: 'created_at')  String createdAt,  PostFile file,  PostPreview preview,  PostScore score,  PostTags tags,  String rating, @JsonKey(name: 'fav_count')  int favCount,  String description,  List<String> sources, @JsonKey(name: 'approver_id')  int? approverId,  PostFlags flags)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id, @JsonKey(name: 'created_at')  String createdAt,  PostFile file,  PostPreview preview,  PostSample? sample,  PostScore score,  PostTags tags,  String rating, @JsonKey(name: 'fav_count')  int favCount,  String description,  List<String> sources, @JsonKey(name: 'approver_id')  int? approverId,  PostFlags flags)?  $default,) {final _that = this;
 switch (_that) {
 case _E621Post() when $default != null:
-return $default(_that.id,_that.createdAt,_that.file,_that.preview,_that.score,_that.tags,_that.rating,_that.favCount,_that.description,_that.sources,_that.approverId,_that.flags);case _:
+return $default(_that.id,_that.createdAt,_that.file,_that.preview,_that.sample,_that.score,_that.tags,_that.rating,_that.favCount,_that.description,_that.sources,_that.approverId,_that.flags);case _:
   return null;
 
 }
@@ -534,13 +547,14 @@ return $default(_that.id,_that.createdAt,_that.file,_that.preview,_that.score,_t
 @JsonSerializable()
 
 class _E621Post implements E621Post {
-  const _E621Post({required this.id, @JsonKey(name: 'created_at') required this.createdAt, required this.file, required this.preview, required this.score, required this.tags, required this.rating, @JsonKey(name: 'fav_count') required this.favCount, this.description = '', final  List<String> sources = const [], @JsonKey(name: 'approver_id') this.approverId, required this.flags}): _sources = sources;
+  const _E621Post({required this.id, @JsonKey(name: 'created_at') required this.createdAt, required this.file, required this.preview, this.sample, required this.score, required this.tags, required this.rating, @JsonKey(name: 'fav_count') required this.favCount, this.description = '', final  List<String> sources = const [], @JsonKey(name: 'approver_id') this.approverId, required this.flags}): _sources = sources;
   factory _E621Post.fromJson(Map<String, dynamic> json) => _$E621PostFromJson(json);
 
 @override final  int id;
 @override@JsonKey(name: 'created_at') final  String createdAt;
 @override final  PostFile file;
 @override final  PostPreview preview;
+@override final  PostSample? sample;
 @override final  PostScore score;
 @override final  PostTags tags;
 @override final  String rating;
@@ -569,16 +583,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _E621Post&&(identical(other.id, id) || other.id == id)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.file, file) || other.file == file)&&(identical(other.preview, preview) || other.preview == preview)&&(identical(other.score, score) || other.score == score)&&(identical(other.tags, tags) || other.tags == tags)&&(identical(other.rating, rating) || other.rating == rating)&&(identical(other.favCount, favCount) || other.favCount == favCount)&&(identical(other.description, description) || other.description == description)&&const DeepCollectionEquality().equals(other._sources, _sources)&&(identical(other.approverId, approverId) || other.approverId == approverId)&&(identical(other.flags, flags) || other.flags == flags));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _E621Post&&(identical(other.id, id) || other.id == id)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.file, file) || other.file == file)&&(identical(other.preview, preview) || other.preview == preview)&&(identical(other.sample, sample) || other.sample == sample)&&(identical(other.score, score) || other.score == score)&&(identical(other.tags, tags) || other.tags == tags)&&(identical(other.rating, rating) || other.rating == rating)&&(identical(other.favCount, favCount) || other.favCount == favCount)&&(identical(other.description, description) || other.description == description)&&const DeepCollectionEquality().equals(other._sources, _sources)&&(identical(other.approverId, approverId) || other.approverId == approverId)&&(identical(other.flags, flags) || other.flags == flags));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,createdAt,file,preview,score,tags,rating,favCount,description,const DeepCollectionEquality().hash(_sources),approverId,flags);
+int get hashCode => Object.hash(runtimeType,id,createdAt,file,preview,sample,score,tags,rating,favCount,description,const DeepCollectionEquality().hash(_sources),approverId,flags);
 
 @override
 String toString() {
-  return 'E621Post(id: $id, createdAt: $createdAt, file: $file, preview: $preview, score: $score, tags: $tags, rating: $rating, favCount: $favCount, description: $description, sources: $sources, approverId: $approverId, flags: $flags)';
+  return 'E621Post(id: $id, createdAt: $createdAt, file: $file, preview: $preview, sample: $sample, score: $score, tags: $tags, rating: $rating, favCount: $favCount, description: $description, sources: $sources, approverId: $approverId, flags: $flags)';
 }
 
 
@@ -589,11 +603,11 @@ abstract mixin class _$E621PostCopyWith<$Res> implements $E621PostCopyWith<$Res>
   factory _$E621PostCopyWith(_E621Post value, $Res Function(_E621Post) _then) = __$E621PostCopyWithImpl;
 @override @useResult
 $Res call({
- int id,@JsonKey(name: 'created_at') String createdAt, PostFile file, PostPreview preview, PostScore score, PostTags tags, String rating,@JsonKey(name: 'fav_count') int favCount, String description, List<String> sources,@JsonKey(name: 'approver_id') int? approverId, PostFlags flags
+ int id,@JsonKey(name: 'created_at') String createdAt, PostFile file, PostPreview preview, PostSample? sample, PostScore score, PostTags tags, String rating,@JsonKey(name: 'fav_count') int favCount, String description, List<String> sources,@JsonKey(name: 'approver_id') int? approverId, PostFlags flags
 });
 
 
-@override $PostFileCopyWith<$Res> get file;@override $PostPreviewCopyWith<$Res> get preview;@override $PostScoreCopyWith<$Res> get score;@override $PostTagsCopyWith<$Res> get tags;@override $PostFlagsCopyWith<$Res> get flags;
+@override $PostFileCopyWith<$Res> get file;@override $PostPreviewCopyWith<$Res> get preview;@override $PostSampleCopyWith<$Res>? get sample;@override $PostScoreCopyWith<$Res> get score;@override $PostTagsCopyWith<$Res> get tags;@override $PostFlagsCopyWith<$Res> get flags;
 
 }
 /// @nodoc
@@ -606,13 +620,14 @@ class __$E621PostCopyWithImpl<$Res>
 
 /// Create a copy of E621Post
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? createdAt = null,Object? file = null,Object? preview = null,Object? score = null,Object? tags = null,Object? rating = null,Object? favCount = null,Object? description = null,Object? sources = null,Object? approverId = freezed,Object? flags = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? createdAt = null,Object? file = null,Object? preview = null,Object? sample = freezed,Object? score = null,Object? tags = null,Object? rating = null,Object? favCount = null,Object? description = null,Object? sources = null,Object? approverId = freezed,Object? flags = null,}) {
   return _then(_E621Post(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as String,file: null == file ? _self.file : file // ignore: cast_nullable_to_non_nullable
 as PostFile,preview: null == preview ? _self.preview : preview // ignore: cast_nullable_to_non_nullable
-as PostPreview,score: null == score ? _self.score : score // ignore: cast_nullable_to_non_nullable
+as PostPreview,sample: freezed == sample ? _self.sample : sample // ignore: cast_nullable_to_non_nullable
+as PostSample?,score: null == score ? _self.score : score // ignore: cast_nullable_to_non_nullable
 as PostScore,tags: null == tags ? _self.tags : tags // ignore: cast_nullable_to_non_nullable
 as PostTags,rating: null == rating ? _self.rating : rating // ignore: cast_nullable_to_non_nullable
 as String,favCount: null == favCount ? _self.favCount : favCount // ignore: cast_nullable_to_non_nullable
@@ -641,6 +656,18 @@ $PostPreviewCopyWith<$Res> get preview {
   
   return $PostPreviewCopyWith<$Res>(_self.preview, (value) {
     return _then(_self.copyWith(preview: value));
+  });
+}/// Create a copy of E621Post
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$PostSampleCopyWith<$Res>? get sample {
+    if (_self.sample == null) {
+    return null;
+  }
+
+  return $PostSampleCopyWith<$Res>(_self.sample!, (value) {
+    return _then(_self.copyWith(sample: value));
   });
 }/// Create a copy of E621Post
 /// with the given fields replaced by the non-null parameter values.
@@ -1482,6 +1509,295 @@ width: null == width ? _self.width : width // ignore: cast_nullable_to_non_nulla
 as int,height: null == height ? _self.height : height // ignore: cast_nullable_to_non_nullable
 as int,url: freezed == url ? _self.url : url // ignore: cast_nullable_to_non_nullable
 as String?,
+  ));
+}
+
+
+}
+
+
+/// @nodoc
+mixin _$PostSample {
+
+ bool get has; int? get width; int? get height; String? get url;/// e621 视频转码表：{'720p': {'type':'video','urls':[...]}, ...}。
+/// 结构不稳定，保留原始 Map 由 [E621PostVideo.bestVideoUrl] 解析。
+ Map<String, dynamic>? get alternates;
+/// Create a copy of PostSample
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$PostSampleCopyWith<PostSample> get copyWith => _$PostSampleCopyWithImpl<PostSample>(this as PostSample, _$identity);
+
+  /// Serializes this PostSample to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is PostSample&&(identical(other.has, has) || other.has == has)&&(identical(other.width, width) || other.width == width)&&(identical(other.height, height) || other.height == height)&&(identical(other.url, url) || other.url == url)&&const DeepCollectionEquality().equals(other.alternates, alternates));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,has,width,height,url,const DeepCollectionEquality().hash(alternates));
+
+@override
+String toString() {
+  return 'PostSample(has: $has, width: $width, height: $height, url: $url, alternates: $alternates)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $PostSampleCopyWith<$Res>  {
+  factory $PostSampleCopyWith(PostSample value, $Res Function(PostSample) _then) = _$PostSampleCopyWithImpl;
+@useResult
+$Res call({
+ bool has, int? width, int? height, String? url, Map<String, dynamic>? alternates
+});
+
+
+
+
+}
+/// @nodoc
+class _$PostSampleCopyWithImpl<$Res>
+    implements $PostSampleCopyWith<$Res> {
+  _$PostSampleCopyWithImpl(this._self, this._then);
+
+  final PostSample _self;
+  final $Res Function(PostSample) _then;
+
+/// Create a copy of PostSample
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? has = null,Object? width = freezed,Object? height = freezed,Object? url = freezed,Object? alternates = freezed,}) {
+  return _then(_self.copyWith(
+has: null == has ? _self.has : has // ignore: cast_nullable_to_non_nullable
+as bool,width: freezed == width ? _self.width : width // ignore: cast_nullable_to_non_nullable
+as int?,height: freezed == height ? _self.height : height // ignore: cast_nullable_to_non_nullable
+as int?,url: freezed == url ? _self.url : url // ignore: cast_nullable_to_non_nullable
+as String?,alternates: freezed == alternates ? _self.alternates : alternates // ignore: cast_nullable_to_non_nullable
+as Map<String, dynamic>?,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [PostSample].
+extension PostSamplePatterns on PostSample {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _PostSample value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _PostSample() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _PostSample value)  $default,){
+final _that = this;
+switch (_that) {
+case _PostSample():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _PostSample value)?  $default,){
+final _that = this;
+switch (_that) {
+case _PostSample() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( bool has,  int? width,  int? height,  String? url,  Map<String, dynamic>? alternates)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _PostSample() when $default != null:
+return $default(_that.has,_that.width,_that.height,_that.url,_that.alternates);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( bool has,  int? width,  int? height,  String? url,  Map<String, dynamic>? alternates)  $default,) {final _that = this;
+switch (_that) {
+case _PostSample():
+return $default(_that.has,_that.width,_that.height,_that.url,_that.alternates);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( bool has,  int? width,  int? height,  String? url,  Map<String, dynamic>? alternates)?  $default,) {final _that = this;
+switch (_that) {
+case _PostSample() when $default != null:
+return $default(_that.has,_that.width,_that.height,_that.url,_that.alternates);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+@JsonSerializable()
+
+class _PostSample implements PostSample {
+  const _PostSample({this.has = false, this.width, this.height, this.url, final  Map<String, dynamic>? alternates}): _alternates = alternates;
+  factory _PostSample.fromJson(Map<String, dynamic> json) => _$PostSampleFromJson(json);
+
+@override@JsonKey() final  bool has;
+@override final  int? width;
+@override final  int? height;
+@override final  String? url;
+/// e621 视频转码表：{'720p': {'type':'video','urls':[...]}, ...}。
+/// 结构不稳定，保留原始 Map 由 [E621PostVideo.bestVideoUrl] 解析。
+ final  Map<String, dynamic>? _alternates;
+/// e621 视频转码表：{'720p': {'type':'video','urls':[...]}, ...}。
+/// 结构不稳定，保留原始 Map 由 [E621PostVideo.bestVideoUrl] 解析。
+@override Map<String, dynamic>? get alternates {
+  final value = _alternates;
+  if (value == null) return null;
+  if (_alternates is EqualUnmodifiableMapView) return _alternates;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableMapView(value);
+}
+
+
+/// Create a copy of PostSample
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$PostSampleCopyWith<_PostSample> get copyWith => __$PostSampleCopyWithImpl<_PostSample>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$PostSampleToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _PostSample&&(identical(other.has, has) || other.has == has)&&(identical(other.width, width) || other.width == width)&&(identical(other.height, height) || other.height == height)&&(identical(other.url, url) || other.url == url)&&const DeepCollectionEquality().equals(other._alternates, _alternates));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,has,width,height,url,const DeepCollectionEquality().hash(_alternates));
+
+@override
+String toString() {
+  return 'PostSample(has: $has, width: $width, height: $height, url: $url, alternates: $alternates)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$PostSampleCopyWith<$Res> implements $PostSampleCopyWith<$Res> {
+  factory _$PostSampleCopyWith(_PostSample value, $Res Function(_PostSample) _then) = __$PostSampleCopyWithImpl;
+@override @useResult
+$Res call({
+ bool has, int? width, int? height, String? url, Map<String, dynamic>? alternates
+});
+
+
+
+
+}
+/// @nodoc
+class __$PostSampleCopyWithImpl<$Res>
+    implements _$PostSampleCopyWith<$Res> {
+  __$PostSampleCopyWithImpl(this._self, this._then);
+
+  final _PostSample _self;
+  final $Res Function(_PostSample) _then;
+
+/// Create a copy of PostSample
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? has = null,Object? width = freezed,Object? height = freezed,Object? url = freezed,Object? alternates = freezed,}) {
+  return _then(_PostSample(
+has: null == has ? _self.has : has // ignore: cast_nullable_to_non_nullable
+as bool,width: freezed == width ? _self.width : width // ignore: cast_nullable_to_non_nullable
+as int?,height: freezed == height ? _self.height : height // ignore: cast_nullable_to_non_nullable
+as int?,url: freezed == url ? _self.url : url // ignore: cast_nullable_to_non_nullable
+as String?,alternates: freezed == alternates ? _self._alternates : alternates // ignore: cast_nullable_to_non_nullable
+as Map<String, dynamic>?,
   ));
 }
 

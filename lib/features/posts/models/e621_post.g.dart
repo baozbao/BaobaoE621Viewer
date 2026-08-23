@@ -23,6 +23,9 @@ _E621Post _$E621PostFromJson(Map<String, dynamic> json) => _E621Post(
   createdAt: json['created_at'] as String,
   file: PostFile.fromJson(json['file'] as Map<String, dynamic>),
   preview: PostPreview.fromJson(json['preview'] as Map<String, dynamic>),
+  sample: json['sample'] == null
+      ? null
+      : PostSample.fromJson(json['sample'] as Map<String, dynamic>),
   score: PostScore.fromJson(json['score'] as Map<String, dynamic>),
   tags: PostTags.fromJson(json['tags'] as Map<String, dynamic>),
   rating: json['rating'] as String,
@@ -40,6 +43,7 @@ Map<String, dynamic> _$E621PostToJson(_E621Post instance) => <String, dynamic>{
   'created_at': instance.createdAt,
   'file': instance.file,
   'preview': instance.preview,
+  'sample': instance.sample,
   'score': instance.score,
   'tags': instance.tags,
   'rating': instance.rating,
@@ -92,6 +96,23 @@ Map<String, dynamic> _$PostPreviewToJson(_PostPreview instance) =>
       'width': instance.width,
       'height': instance.height,
       'url': instance.url,
+    };
+
+_PostSample _$PostSampleFromJson(Map<String, dynamic> json) => _PostSample(
+  has: json['has'] as bool? ?? false,
+  width: (json['width'] as num?)?.toInt(),
+  height: (json['height'] as num?)?.toInt(),
+  url: json['url'] as String?,
+  alternates: json['alternates'] as Map<String, dynamic>?,
+);
+
+Map<String, dynamic> _$PostSampleToJson(_PostSample instance) =>
+    <String, dynamic>{
+      'has': instance.has,
+      'width': instance.width,
+      'height': instance.height,
+      'url': instance.url,
+      'alternates': instance.alternates,
     };
 
 _PostScore _$PostScoreFromJson(Map<String, dynamic> json) => _PostScore(

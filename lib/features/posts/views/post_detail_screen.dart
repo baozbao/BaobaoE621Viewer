@@ -1,362 +1,491 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/e621_post.dart';
-import '../utils/download_helper.dart';
-import '../../../core/services/log_service.dart';
-import '../../../core/widgets/native_web_image.dart';
-import '../../../core/widgets/media_player.dart';
 import '../providers/post_list_provider.dart';
-import 'package:go_router/go_router.dart';
+import '../utils/download_helper.dart';
+import '../widgets/tag_group_section.dart';
+import '../../favorites/providers/favorites_provider.dart';
+import '../../popular/providers/popular_provider.dart';
+import '../../settings/providers/settings_provider.dart';
+import '../../history/providers/history_provider.dart';
+import '../../../core/constants/strings.dart';
+import '../../../core/theme/app_theme.dart';
+import '../../../core/utils/post_format.dart';
+import '../../../core/widgets/native_web_image.dart';
+import '../../../core/widgets/hidden_post_placeholder.dart';
+import '../../../core/widgets/media_player.dart';
+import '../../../core/widgets/frosted_surface.dart';
+
+/// 详情页路由参数（B2:传索引 + 数据源，支持画廊左右滑）。
+class PostDetailArgs {
+  /// 在 [source] 列表中的起始索引。
+  final int index;
+
+  /// 画廊数据源。默认 `postList` = 首页列表；`favorites` = 收藏页；
+  /// `popular` = 热门榜单（需配合 [scale]）。
+  final PostDetailSource source;
+
+  /// 当 source 为 popular 时的时间范围。
+  final PopularScale? scale;
+
+  const PostDetailArgs({
+    required this.index,
+    this.source = PostDetailSource.postList,
+    this.scale,
+  });
+}
+
+enum PostDetailSource { postList, favorites, popular, history }
 
 class PostDetailScreen extends ConsumerStatefulWidget {
-  final E621Post post;
+  final PostDetailArgs args;
 
-  const PostDetailScreen({super.key, required this.post});
+  const PostDetailScreen({super.key, required this.args});
 
   @override
   ConsumerState<PostDetailScreen> createState() => _PostDetailScreenState();
 }
 
 class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
-  bool _isTagsExpanded = false;
+  late final PageController _pageController;
+  late int _currentIndex;
 
-  final Set<String> _selectedTags = {};
+  /// 任一页处于放大状态时，禁用 PageView 横滑（B1/B2 手势冲突）。
+  bool _zoomed = false;
 
-  void _applyTagsAndPop() {
-    if (_selectedTags.isNotEmpty) {
-      final currentTags = ref.read(postListProvider).currentTags;
-      // Filter out tags that are already in the current search query
-      final existingTagsList = currentTags.split(' ');
-      final tagsToAdd = _selectedTags.where((t) => !existingTagsList.contains(t)).join(' ');
-      
-      if (tagsToAdd.isNotEmpty) {
-        final newTags = currentTags.trim().isEmpty ? tagsToAdd : '${currentTags.trim()} $tagsToAdd';
-        // Delay slightly so the pop animation starts smoothly
-        Future.microtask(() {
-          ref.read(postListProvider.notifier).search(newTags);
-        });
-      }
-    }
-    if (context.canPop()) {
-      context.pop();
-    }
+  @override
+  void initState() {
+    super.initState();
+    _currentIndex = widget.args.index;
+    _pageController = PageController(initialPage: widget.args.index);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _recordCurrentPost());
   }
 
-  void _handleLongPress() {
-    if (widget.post.file.url == null) return;
-    final filename = '${widget.post.id}.${widget.post.file.ext}';
-    DownloadHelper.showDownloadDialog(context, widget.post.file.url!, filename);
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
   }
 
-  String _formatSize(int bytes) {
-    if (bytes < 1024) return '$bytes B';
-    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
-    return '${(bytes / (1024 * 1024)).toStringAsFixed(2)} MB';
-  }
-
-  String _getStatus() {
-    if (widget.post.flags.deleted) return 'Deleted';
-    if (widget.post.flags.pending) return 'Pending';
-    if (widget.post.flags.flagged) return 'Flagged';
-    return 'Active';
-  }
-
-  String _getRating() {
-    switch (widget.post.rating) {
-      case 'e': return 'Explicit';
-      case 'q': return 'Questionable';
-      case 's': return 'Safe';
-      default: return 'Unknown';
+  List<E621Post> _watchPosts() {
+    switch (widget.args.source) {
+      case PostDetailSource.postList:
+        return ref.watch(postListProvider).posts;
+      case PostDetailSource.favorites:
+        return ref.watch(favoritesProvider);
+      case PostDetailSource.popular:
+        // 复用热门页已缓存的榜单，避免详情页重复请求。
+        return ref.watch(popularPostsProvider(widget.args.scale!)).value ??
+            const [];
+      case PostDetailSource.history:
+        return ref.watch(historyProvider).map((e) => e.post).toList();
     }
   }
 
-  Color _getRatingColor() {
-    switch (widget.post.rating) {
-      case 'e': return Colors.red;
-      case 'q': return Colors.orange;
-      case 's': return Colors.green;
-      default: return Colors.grey;
+  List<E621Post> _readPostsSnapshot() {
+    switch (widget.args.source) {
+      case PostDetailSource.postList:
+        return ref.read(postListProvider).posts;
+      case PostDetailSource.favorites:
+        return ref.read(favoritesProvider);
+      case PostDetailSource.popular:
+        return ref.read(popularPostsProvider(widget.args.scale!)).value ??
+            const [];
+      case PostDetailSource.history:
+        return ref.read(historyProvider).map((e) => e.post).toList();
+    }
+  }
+
+  void _recordCurrentPost() {
+    if (widget.args.source == PostDetailSource.history) return;
+    final posts = _readPostsSnapshot();
+    if (_currentIndex < posts.length) {
+      ref.read(historyProvider.notifier).record(posts[_currentIndex]);
+    }
+  }
+
+  void _onPageChanged(int index, int total) {
+    setState(() => _currentIndex = index);
+    _recordCurrentPost();
+    // 画廊滑到接近末尾时，无限滚动模式下自动加载下一页（B2 + A3）。
+    if (widget.args.source == PostDetailSource.postList &&
+        ref.read(settingsProvider).browseMode == BrowseMode.infinite &&
+        index >= total - 3) {
+      ref.read(postListProvider.notifier).loadMore();
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final post = widget.post;
+    final posts = _watchPosts();
+
+    if (posts.isEmpty || _currentIndex >= posts.length) {
+      return Scaffold(
+        appBar: AppBar(),
+        body: const Center(child: Icon(Icons.broken_image, size: 50)),
+      );
+    }
+
+    final current = posts[_currentIndex];
+    final isFav = ref.watch(favoritesProvider.notifier).isFavorited(current.id);
 
     return PopScope(
-      canPop: false,
+      // 返回主页时：若开启「选择标签返回时自动搜索」且有暂选标签，
+      // 自动搜索 原标签 + 新标签。
       onPopInvokedWithResult: (didPop, result) {
-        if (didPop) return;
-        _applyTagsAndPop();
+        if (!didPop) return;
+        final settings = ref.read(settingsProvider);
+        final pending = ref.read(postListProvider).pendingTags;
+        if (settings.autoSearchOnTagReturn && pending.isNotEmpty) {
+          ref.read(postListProvider.notifier).applyPendingTags();
+        }
       },
       child: Scaffold(
         appBar: AppBar(
-          leading: BackButton(
-            onPressed: _applyTagsAndPop,
+          title: Text('#${current.id}'),
+          // 毛玻璃顶栏：大图顶到栏下时透出模糊色影，比实色挡板更贴合看图场景。
+          backgroundColor: Colors.transparent,
+          scrolledUnderElevation: 0,
+          flexibleSpace: FrostedSurface(
+            border: AppTheme.surfaceBorder(
+              light: Theme.of(context).brightness == Brightness.light,
+            ),
           ),
-          title: const Text('Detail'),
+          actions: [
+            IconButton(
+              tooltip: isFav
+                  ? Strings.removedFromFavorites
+                  : Strings.added2Favorites,
+              icon: Icon(
+                isFav ? Icons.favorite : Icons.favorite_border,
+                color: isFav ? Colors.redAccent : null,
+              ),
+              onPressed: () {
+                ref.read(favoritesProvider.notifier).toggle(current);
+                ScaffoldMessenger.of(context)
+                  ..hideCurrentSnackBar()
+                  ..showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        isFav
+                            ? Strings.removedFromFavorites
+                            : Strings.added2Favorites,
+                      ),
+                      duration: const Duration(seconds: 1),
+                    ),
+                  );
+              },
+            ),
+            IconButton(
+              tooltip: Strings.download,
+              icon: const Icon(Icons.download),
+              onPressed: () =>
+                  DownloadHelper.showDownloadSheet(context, ref, current),
+            ),
+          ],
         ),
-        body: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Image Section
-              if (post.file.url != null)
-                Container(
-                  margin: const EdgeInsets.all(16.0),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(16.0),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Colors.black45,
-                        blurRadius: 10,
-                        offset: Offset(0, 5),
-                      ),
-                    ],
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(16.0),
-                    child: GestureDetector(
-                      onLongPress: _handleLongPress,
-                      child: AspectRatio(
-                        aspectRatio: post.file.width / post.file.height,
-                        child: Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            if (post.file.ext == 'webm' || post.file.ext == 'mp4')
-                              MediaPlayer(
-                                videoUrl: post.file.url!,
-                                aspectRatio: post.file.width / post.file.height,
-                              )
-                            else if (post.file.ext == 'swf')
-                              const Center(
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(Icons.flash_off, size: 50, color: Colors.grey),
-                                    SizedBox(height: 8),
-                                    Text('Flash 动画 (.swf) 现已停止支持', style: TextStyle(color: Colors.grey)),
-                                  ],
-                                ),
-                              )
-                            else
-                              NativeWebImage(
-                                imageUrl: post.file.url!,
-                                fit: BoxFit.contain,
-                              ),
-                            
-                            if (post.file.ext != 'webm' && post.file.ext != 'mp4' && post.file.ext != 'swf')
-                              Positioned.fill(
-                                child: Container(color: Colors.transparent),
-                              ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                )
-              else
-                const SizedBox(
-                  height: 300,
-                  child: Center(child: Icon(Icons.broken_image, size: 50)),
-                ),
-
-              const SizedBox(height: 16),
-
-              // Tags Section Header
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                child: Row(
-                  children: [
-                    const Text(
-                      'Tags',
-                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.blue),
-                    ),
-                    const SizedBox(width: 16),
-                    ElevatedButton(
-                      onPressed: () {
-                        setState(() {
-                          _isTagsExpanded = !_isTagsExpanded;
-                        });
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.grey[850],
-                        foregroundColor: Colors.white,
-                      ),
-                      child: Text(_isTagsExpanded ? 'COLLAPSE' : 'EXPAND'),
-                    ),
-                  ],
-                ),
-              ),
-              
-              if (!_isTagsExpanded)
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                  child: Text('Click Expand to view and select tags...', style: TextStyle(color: Colors.grey)),
-                ),
-
-              // Expanded Tags List
-              if (_isTagsExpanded)
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildTagGroup('ARTIST', post.tags.artist, Colors.amber),
-                      _buildTagGroup('COPYRIGHT', post.tags.copyright, Colors.purpleAccent),
-                      _buildTagGroup('SPECIES', post.tags.species, Colors.orange),
-                      _buildTagGroup('CHARACTERS', post.tags.character, Colors.green),
-                      _buildTagGroup('GENERAL', post.tags.general, Colors.white),
-                    ],
-                  ),
-                ),
-
-              const Divider(height: 32),
-
-              // Image Info Section
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16.0),
-                child: Text(
-                  'IMAGE INFO',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey),
-                ),
-              ),
-              const SizedBox(height: 8),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                child: DefaultTextStyle(
-                  style: const TextStyle(fontSize: 14, color: Colors.white70, height: 1.5),
-                  child: Row(
-                    children: [
-                      const Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Text('ID'),
-                          Text('MD5'),
-                          Text('Size'),
-                          Text('Type'),
-                          Text('Status'),
-                          SizedBox(height: 8),
-                          Text('Rating'),
-                          Text('Score'),
-                          Text('Faves'),
-                          SizedBox(height: 8),
-                          Text('Posted'),
-                        ],
-                      ),
-                      const SizedBox(width: 16),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('${post.id}', style: const TextStyle(color: Colors.white)),
-                          Text(post.file.md5, style: const TextStyle(color: Colors.white)),
-                          Text('${post.file.width}x${post.file.height} (${_formatSize(post.file.size)})', style: const TextStyle(color: Colors.white)),
-                          Text(post.file.ext.toUpperCase(), style: const TextStyle(color: Colors.white)),
-                          Text(_getStatus(), style: const TextStyle(color: Colors.white)),
-                          const SizedBox(height: 8),
-                          Text(_getRating(), style: TextStyle(color: _getRatingColor())),
-                          Text('${post.score.total}', style: const TextStyle(color: Colors.green)),
-                          Text('${post.favCount}', style: const TextStyle(color: Colors.white)),
-                          const SizedBox(height: 8),
-                          Text(post.createdAt, style: const TextStyle(color: Colors.white)),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              const Divider(height: 32),
-
-              // Description and Source
-              if (post.description.isNotEmpty) ...[
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16.0),
-                  child: Text(
-                    'DESCRIPTION',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: Text(post.description, style: const TextStyle(color: Colors.white70)),
-                ),
-                const SizedBox(height: 16),
-              ],
-
-              if (post.sources.isNotEmpty) ...[
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16.0),
-                  child: Text(
-                    'SOURCE',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                ...post.sources.map((source) => Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 2.0),
-                      child: Text(source, style: const TextStyle(color: Colors.lightBlueAccent)),
-                    )),
-              ],
-
-              const SizedBox(height: 40),
-            ],
-          ),
+        body: PageView.builder(
+          controller: _pageController,
+          physics: _zoomed ? const NeverScrollableScrollPhysics() : null,
+          itemCount: posts.length,
+          onPageChanged: (i) => _onPageChanged(i, posts.length),
+          itemBuilder: (context, index) {
+            return _PostDetailPage(
+              post: posts[index],
+              onZoomChanged: (z) {
+                if (z != _zoomed) setState(() => _zoomed = z);
+              },
+            );
+          },
         ),
       ),
     );
   }
+}
 
-  Widget _buildTagGroup(String title, List<String> tags, Color color) {
-    if (tags.isEmpty) return const SizedBox.shrink();
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16.0),
+/// 单个帖子的详情内容：可缩放大图 + 标签分组 + 信息。
+class _PostDetailPage extends ConsumerWidget {
+  final E621Post post;
+  final ValueChanged<bool> onZoomChanged;
+
+  const _PostDetailPage({required this.post, required this.onZoomChanged});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final onSurface = Theme.of(context).colorScheme.onSurface;
+
+    return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Made Category Title bigger, bolder, and more distinct
-          Text(title, style: TextStyle(color: color, fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: 1.2)),
+          // 媒体区。url == null = 服务端隐藏（未登录/已删除），不是加载失败。
+          if (post.file.url == null)
+            SizedBox(
+              height: 300,
+              child: HiddenPostPlaceholder(deleted: post.flags.deleted),
+            )
+          else if (PostFormat.isVideo(post.file.ext))
+            AspectRatio(
+              aspectRatio: post.file.width / post.file.height,
+              child: MediaPlayer(
+                // 优先用 e621 转码的 H.264 mp4（alternates），
+                // 原始 VP9 webm 在低端设备/模拟器上软解会一直缓冲转圈。
+                videoUrl: post.bestVideoUrl ?? post.file.url!,
+                aspectRatio: post.file.width / post.file.height,
+              ),
+            )
+          else if (post.file.ext == 'swf')
+            const SizedBox(
+              height: 300,
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.flash_off, size: 50, color: Colors.grey),
+                    SizedBox(height: 8),
+                    Text(
+                      'Flash 动画 (.swf) 现已停止支持',
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else
+            _ZoomableImage(
+              url: post.file.url!,
+              aspectRatio: post.file.width / post.file.height,
+              onZoomChanged: onZoomChanged,
+            ),
+
           const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 10,
-            children: tags.map((tag) {
-              final isSelected = _selectedTags.contains(tag);
-              return GestureDetector(
-                onTap: () {
-                  setState(() {
-                    if (isSelected) {
-                      _selectedTags.remove(tag);
-                    } else {
-                      _selectedTags.add(tag);
-                    }
-                  });
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+
+          // 收藏 / 分数 / 下载 快捷条。
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.arrow_upward,
+                  size: 16,
+                  color: PostFormat.scoreColor(post.score.total),
+                ),
+                const SizedBox(width: 2),
+                Text(
+                  '${post.score.total}',
+                  style: TextStyle(
+                    color: PostFormat.scoreColor(post.score.total),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                const Icon(Icons.favorite, size: 16, color: Colors.redAccent),
+                const SizedBox(width: 2),
+                Text('${post.favCount}'),
+                const SizedBox(width: 16),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
-                    color: isSelected ? Colors.lightBlueAccent.withAlpha(50) : Colors.transparent,
-                    borderRadius: BorderRadius.circular(8),
+                    color: PostFormat.ratingColor(post.rating).withAlpha(40),
+                    borderRadius: BorderRadius.circular(6),
                     border: Border.all(
-                      color: isSelected ? Colors.lightBlueAccent : Colors.white12,
-                      width: 1,
+                      color: PostFormat.ratingColor(post.rating),
                     ),
                   ),
                   child: Text(
-                    tag, 
+                    PostFormat.ratingLabel(post.rating),
                     style: TextStyle(
-                      color: isSelected ? Colors.lightBlueAccent : color, 
-                      fontSize: 15,
-                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                      color: PostFormat.ratingColor(post.rating),
+                      fontSize: 12,
                     ),
                   ),
                 ),
-              );
-            }).toList(),
+              ],
+            ),
           ),
+
+          const Divider(height: 24),
+
+          // 标签分组（B3）。
+          TagGroupSection(tags: post.tags),
+
+          const Divider(height: 24),
+
+          // 图片信息。
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Text(
+              Strings.imageInfo,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: onSurface.withAlpha(160),
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          _InfoRow('ID', '${post.id}'),
+          _InfoRow(
+            '尺寸',
+            '${post.file.width}x${post.file.height} (${PostFormat.fileSize(post.file.size)})',
+          ),
+          _InfoRow('类型', post.file.ext.toUpperCase()),
+          _InfoRow('MD5', post.file.md5),
+          _InfoRow('发布时间', post.createdAt),
+
+          if (post.description.isNotEmpty) ...[
+            const Divider(height: 24),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Text(
+                Strings.description,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: onSurface.withAlpha(160),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Text(post.description),
+            ),
+          ],
+
+          if (post.sources.isNotEmpty) ...[
+            const Divider(height: 24),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Text(
+                Strings.source,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: onSurface.withAlpha(160),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            ...post.sources.map(
+              (s) => Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 2,
+                ),
+                child: Text(
+                  s,
+                  style: const TextStyle(color: Colors.lightBlueAccent),
+                ),
+              ),
+            ),
+          ],
+
+          const SizedBox(height: 40),
+        ],
+      ),
+    );
+  }
+}
+
+/// 捏合缩放 + 双击放大（B1）。放大状态变化通过 [onZoomChanged] 上报，
+/// 供父级禁用 PageView 横滑。
+class _ZoomableImage extends StatefulWidget {
+  final String url;
+  final double aspectRatio;
+  final ValueChanged<bool> onZoomChanged;
+
+  const _ZoomableImage({
+    required this.url,
+    required this.aspectRatio,
+    required this.onZoomChanged,
+  });
+
+  @override
+  State<_ZoomableImage> createState() => _ZoomableImageState();
+}
+
+class _ZoomableImageState extends State<_ZoomableImage> {
+  final TransformationController _controller = TransformationController();
+  TapDownDetails? _doubleTapDetails;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller.addListener(_notifyZoom);
+  }
+
+  @override
+  void dispose() {
+    _controller.removeListener(_notifyZoom);
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _notifyZoom() {
+    final scale = _controller.value.getMaxScaleOnAxis();
+    widget.onZoomChanged(scale > 1.05);
+  }
+
+  void _handleDoubleTap() {
+    if (_controller.value.getMaxScaleOnAxis() > 1.05) {
+      _controller.value = Matrix4.identity();
+    } else {
+      final pos = _doubleTapDetails?.localPosition;
+      if (pos == null) return;
+      // 以双击点为中心放大到 2.5x。
+      const scale = 2.5;
+      final x = -pos.dx * (scale - 1);
+      final y = -pos.dy * (scale - 1);
+      _controller.value = Matrix4.identity()
+        ..translateByDouble(x, y, 0, 1)
+        ..scaleByDouble(scale, scale, 1, 1);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onDoubleTapDown: (d) => _doubleTapDetails = d,
+      onDoubleTap: _handleDoubleTap,
+      child: InteractiveViewer(
+        transformationController: _controller,
+        minScale: 1,
+        maxScale: 5,
+        child: AspectRatio(
+          aspectRatio: widget.aspectRatio,
+          child: NativeWebImage(imageUrl: widget.url, fit: BoxFit.contain),
+        ),
+      ),
+    );
+  }
+}
+
+class _InfoRow extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _InfoRow(this.label, this.value);
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 70,
+            child: Text(
+              label,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurface.withAlpha(140),
+              ),
+            ),
+          ),
+          Expanded(child: SelectableText(value)),
         ],
       ),
     );

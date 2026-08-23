@@ -1,5 +1,6 @@
 import 'dart:developer';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/network/api_client.dart';
 import '../models/e621_post.dart';
@@ -21,11 +22,7 @@ class PostRepository {
     try {
       final response = await _dio.get(
         '/posts.json',
-        queryParameters: {
-          'tags': tags,
-          'page': page,
-          'limit': limit,
-        },
+        queryParameters: {'tags': tags, 'page': page, 'limit': limit},
       );
 
       final postResponse = E621PostResponse.fromJson(response.data);
@@ -41,11 +38,18 @@ class PostRepository {
   ///
   /// Strategy:
   /// 1. Request `/posts?tags=xxx` WITHOUT a limit param, so e621 uses its
-  ///    server-side default per-page (found in `data-user-per-page` on <body>).
-  /// 2. Extract `data-total` (total pages at that per-page) from the <nav>.
-  /// 3. Extract `data-user-per-page` from the <body>.
+  ///    server-side default per-page (found in `data-user-per-page` on `<body>`).
+  /// 2. Extract `data-total` (total pages at that per-page) from the `<nav>`.
+  /// 3. Extract `data-user-per-page` from the `<body>`.
   /// 4. Return totalPages * perPage = approximate total post count.
+  ///
+  /// 返回 0 表示拿不到总数，调用方据此退化成「不显示总页数」。
   Future<int> fetchTotalPostCount({required String tags}) async {
+    // Web 上这个请求注定失败：e621 给 JSON API 配了 CORS 头，但 HTML 页面没有，
+    // 浏览器会在拿到响应前就拦掉。既然结果必然是 0，就别发这个请求——它除了
+    // 在日志里堆一条红色失败记录、误导排查之外没有任何作用。
+    if (kIsWeb) return 0;
+
     try {
       final response = await _dio.get(
         '/posts',
@@ -58,7 +62,9 @@ class PostRepository {
       // Extract data-total="X" from the pagination nav
       final totalMatch = RegExp(r'data-total="(\d+)"').firstMatch(html);
       // Extract data-user-per-page="X" from the <body> tag
-      final perPageMatch = RegExp(r'data-user-per-page="(\d+)"').firstMatch(html);
+      final perPageMatch = RegExp(
+        r'data-user-per-page="(\d+)"',
+      ).firstMatch(html);
 
       if (totalMatch != null && perPageMatch != null) {
         final totalPages = int.parse(totalMatch.group(1)!);
@@ -69,6 +75,21 @@ class PostRepository {
     } catch (e) {
       log('Error fetching total post count from HTML: $e');
       return 0;
+    }
+  }
+
+  /// 热门榜单（E2）。scale = day / week / month。
+  Future<List<E621Post>> getPopular({String scale = 'day'}) async {
+    try {
+      final response = await _dio.get(
+        '/popular.json',
+        queryParameters: {'scale': scale},
+      );
+      final postResponse = E621PostResponse.fromJson(response.data);
+      return postResponse.posts;
+    } catch (e) {
+      log('Error fetching popular posts: $e');
+      rethrow;
     }
   }
 }

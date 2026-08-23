@@ -21,7 +21,7 @@ class MediaPlayer extends StatefulWidget {
 }
 
 class _MediaPlayerState extends State<MediaPlayer> {
-  late VideoPlayerController _videoPlayerController;
+  VideoPlayerController? _videoPlayerController;
   ChewieController? _chewieController;
   bool _hasError = false;
   String _errorMessage = '';
@@ -34,15 +34,21 @@ class _MediaPlayerState extends State<MediaPlayer> {
 
   Future<void> _initializePlayer() async {
     try {
-      _videoPlayerController = VideoPlayerController.networkUrl(
+      final controller = VideoPlayerController.networkUrl(
         Uri.parse(widget.videoUrl),
         httpHeaders: const {'User-Agent': 'E621Mobile/1.0 (by Baozbao)'},
       );
+      _videoPlayerController = controller;
 
-      await _videoPlayerController.initialize();
+      // 初始化限时 30 秒：网络不通/解码器打不开时不再无限转圈，
+      // 而是走到错误分支给出提示（原实现会永远停在 loading）。
+      await controller.initialize().timeout(
+        const Duration(seconds: 30),
+        onTimeout: () => throw Exception('视频加载超时，请检查网络后重试'),
+      );
 
       _chewieController = ChewieController(
-        videoPlayerController: _videoPlayerController,
+        videoPlayerController: controller,
         autoPlay: widget.autoPlay,
         looping: widget.looping,
         aspectRatio: widget.aspectRatio,
@@ -67,7 +73,7 @@ class _MediaPlayerState extends State<MediaPlayer> {
           );
         },
       );
-      
+
       if (mounted) {
         setState(() {});
       }
@@ -83,7 +89,7 @@ class _MediaPlayerState extends State<MediaPlayer> {
 
   @override
   void dispose() {
-    _videoPlayerController.dispose();
+    _videoPlayerController?.dispose();
     _chewieController?.dispose();
     super.dispose();
   }
@@ -110,19 +116,16 @@ class _MediaPlayerState extends State<MediaPlayer> {
       );
     }
 
-    if (_chewieController != null && _chewieController!.videoPlayerController.value.isInitialized) {
+    if (_chewieController != null &&
+        _chewieController!.videoPlayerController.value.isInitialized) {
       return Container(
         color: Colors.black,
-        child: Chewie(
-          controller: _chewieController!,
-        ),
+        child: Chewie(controller: _chewieController!),
       );
     } else {
       return Container(
         color: Colors.black,
-        child: const Center(
-          child: CircularProgressIndicator(),
-        ),
+        child: const Center(child: CircularProgressIndicator()),
       );
     }
   }
